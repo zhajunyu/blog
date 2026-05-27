@@ -37,35 +37,49 @@ body {
   color: var(--foreground);
 }
 
-/* Code block styling */
-pre {
-  @apply rounded-lg p-4 overflow-x-auto text-sm border border-border;
-}
-
-pre code {
-  @apply bg-transparent p-0;
-}
-
-code {
+/* Inline code */
+:not(pre) > code {
   @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono;
 }
 
-pre code {
-  @apply bg-transparent p-0 text-sm;
+/* rehype-pretty-code block styling */
+[data-rehype-pretty-code-figure] {
+  @apply my-6;
 }
 
-/* rehype-pretty-code line numbers */
-code[data-line-numbers] {
-  counter-reset: line;
+[data-rehype-pretty-code-figure] pre {
+  @apply rounded-lg p-4 overflow-x-auto text-sm border border-border bg-muted/50;
 }
 
-code[data-line-numbers] > [data-line]::before {
-  counter-increment: line;
-  content: counter(line);
-  @apply inline-block w-4 mr-4 text-right text-muted-foreground;
+[data-rehype-pretty-code-figure] code {
+  @apply bg-transparent p-0;
+}
+
+[data-rehype-pretty-code-figure] [data-line] {
+  @apply px-1;
+}
+
+/* Syntax highlighting: apply Shiki CSS variables */
+[data-rehype-pretty-code-figure] [data-theme*=" "] span {
+  color: var(--shiki-light);
+}
+
+.dark [data-rehype-pretty-code-figure] [data-theme*=" "] span {
+  color: var(--shiki-dark);
 }
 
 /* Highlighted lines */
-[data-highlighted-line] {
+[data-rehype-pretty-code-figure] [data-highlighted-line] {
   @apply bg-accent border-l-4 border-blue-500 pl-3;
+}
+
+/* Line numbers */
+[data-rehype-pretty-code-figure] code[data-line-numbers] {
+  counter-reset: line;
+}
+
+[data-rehype-pretty-code-figure] code[data-line-numbers] > [data-line]::before {
+  counter-increment: line;
+  content: counter(line);
+  @apply inline-block w-4 mr-4 text-right text-muted-foreground;
 }

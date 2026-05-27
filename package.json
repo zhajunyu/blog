@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"velite --watch\" \"next dev\"",
-    "build": "velite && next build",
+    "build": "velite && node scripts/generate-search-index.mjs && next build",
     "start": "next start",
     "lint": "eslint"
   },

@@ -23,7 +23,7 @@ const posts = defineCollection({
 
 export default defineConfig({
   collections: { posts },
-  markdown: {
+  mdx: {
     remarkPlugins: [remarkGfm],
     rehypePlugins: [
       [

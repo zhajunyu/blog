@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getPost, getPosts, getAdjacentPosts } from "@/lib/velite";
 import { MdxBody } from "@/components/post/post-body";
 import { TagBadges } from "@/components/post/tag-badge";
+import { JsonLd } from "@/components/post/json-ld";
 import { SITE } from "@/lib/constants";
 
 interface Props {
@@ -48,6 +49,13 @@ export default async function PostPage({ params }: Props) {
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-16">
+      <JsonLd
+        title={post.title}
+        description={post.description}
+        date={post.date}
+        slug={post.slug}
+        tags={post.tags}
+      />
       <header className="mb-10">
         <time
           dateTime={post.date}

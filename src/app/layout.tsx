@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
+import { Header } from "@/components/layout/header";
+import { SearchProvider } from "@/components/search/search-provider";
+import { SearchDialog } from "@/components/search/search-dialog";
+import { SITE } from "@/lib/constants";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,11 +18,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE.url),
   title: {
-    template: "%s | My Blog",
-    default: "My Blog",
+    template: `%s | ${SITE.title}`,
+    default: SITE.title,
   },
-  description: "Personal blog about tech, code, and more.",
+  description: SITE.description,
 };
 
 export default function RootLayout({
@@ -34,7 +39,11 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
+          <SearchProvider>
+            <Header />
+            {children}
+            <SearchDialog />
+          </SearchProvider>
         </ThemeProvider>
       </body>
     </html>
