@@ -2,9 +2,22 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { Sun, Moon, Monitor } from "lucide-react";
+
+const icons = {
+  light: Sun,
+  dark: Moon,
+  system: Monitor,
+};
+
+const labels: Record<keyof typeof icons, string> = {
+  light: "Light",
+  dark: "Dark",
+  system: "System",
+};
 
 export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -19,15 +32,17 @@ export function ThemeToggle() {
     setTheme("system");
   }
 
-  const label =
-    theme === "system" ? "Auto" : resolvedTheme === "dark" ? "Dark" : "Light";
+  const current = (theme as keyof typeof icons) ?? "system";
+  const Icon = icons[current];
+  const label = labels[current];
 
   return (
     <button
       onClick={cycle}
-      className="text-xs px-2 py-1 rounded-md bg-accent text-muted-foreground hover:text-foreground transition-colors"
+      className="flex items-center gap-1 rounded-md bg-muted hover:bg-accent transition-colors text-muted-foreground hover:text-foreground text-sm px-2 py-1"
       aria-label={`Theme: ${label}`}
     >
+      <Icon size={14} />
       {label}
     </button>
   );

@@ -19,7 +19,9 @@ export function SearchDialog() {
   const [index, setIndex] = useState<SearchItem[]>([]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchItem[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     fetch("/search-index.json")
@@ -42,6 +44,7 @@ export function SearchDialog() {
   const search = useCallback(
     (q: string) => {
       setQuery(q);
+      setSelectedIndex(0);
       if (!q.trim() || !fuseRef.current) {
         setResults(index.slice(0, 5));
         return;
@@ -54,23 +57,39 @@ export function SearchDialog() {
   useEffect(() => {
     if (open) {
       setQuery("");
+      setSelectedIndex(0);
       setResults(index.slice(0, 5));
       setTimeout(() => inputRef.current?.focus(), 0);
     }
   }, [open, index]);
 
-  useEffect(() => {
-    function handler(e: KeyboardEvent) {
-      if (e.key === "Escape") closeSearch();
-    }
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [closeSearch]);
-
   const navigate = (slug: string) => {
     closeSearch();
     router.push(`/posts/${slug}`);
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") return closeSearch();
+
+    if (results.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev + 1) % results.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev - 1 + results.length) % results.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      navigate(results[selectedIndex].slug);
+    }
+  };
+
+  // Scroll selected item into view
+  useEffect(() => {
+    const el = listRef.current?.children[selectedIndex] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex]);
 
   if (!open) return null;
 
@@ -88,20 +107,23 @@ export function SearchDialog() {
           ref={inputRef}
           value={query}
           onChange={(e) => search(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Search posts..."
           className="w-full px-4 py-4 bg-transparent border-b border-border text-foreground placeholder:text-muted-foreground outline-none text-lg"
         />
-        <ul className="max-h-80 overflow-y-auto">
+        <ul ref={listRef} className="max-h-80 overflow-y-auto">
           {results.length === 0 ? (
             <li className="px-4 py-6 text-center text-muted-foreground text-sm">
               No results
             </li>
           ) : (
-            results.map((item) => (
+            results.map((item, i) => (
               <li key={item.slug}>
                 <button
                   onClick={() => navigate(item.slug)}
-                  className="w-full text-left px-4 py-3 hover:bg-accent transition-colors"
+                  className={`w-full text-left px-4 py-3 transition-colors ${
+                    i === selectedIndex ? "bg-accent" : "hover:bg-accent/50"
+                  }`}
                 >
                   <div className="font-medium text-foreground">
                     {item.title}
@@ -125,7 +147,7 @@ export function SearchDialog() {
           )}
         </ul>
         <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex justify-between">
-          <span>Type to search</span>
+          <span>↑↓ to navigate · Enter to select</span>
           <span>Esc to close</span>
         </div>
       </div>

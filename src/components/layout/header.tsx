@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Tag, Search } from "lucide-react";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useSearch } from "@/components/search/search-provider";
 
@@ -17,13 +18,18 @@ export function Header() {
           My Blog
         </Link>
         <nav className="flex items-center gap-4 text-sm text-muted-foreground">
-          <Link href="/tags" className="hover:text-foreground transition-colors">
+          <Link
+            href="/tags"
+            className="flex items-center gap-1 hover:text-foreground transition-colors"
+          >
+            <Tag size={14} />
             Tags
           </Link>
           <button
             onClick={openSearch}
-            className="hover:text-foreground transition-colors"
+            className="flex items-center gap-1 hover:text-foreground transition-colors"
           >
+            <Search size={14} />
             Search
           </button>
           <ThemeToggle />
