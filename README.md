@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# My Blog
+
+Personal blog built with Next.js and Velite, deployed on Vercel.
+
+## Tech Stack
+
+| Layer | Choice |
+|-------|--------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
+| Content | Velite — build-time MDX from markdown files |
+| Styling | Tailwind CSS v4 + `@tailwindcss/typography` |
+| Dark mode | next-themes |
+| Search | Fuse.js (client-side, Cmd+K) |
+| Comments | Giscus (GitHub Discussions) |
+| RSS | `feed` package (`/feed.xml`) |
+| OG Images | next/og (edge-rendered, per-post) |
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Writing Posts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Add `.md` files to `content/posts/` with frontmatter:
 
-## Learn More
+```md
+---
+title: "Post Title"
+description: "A short description"
+date: 2026-05-27
+tags: ["tag1", "tag2"]
+published: true
+---
 
-To learn more about Next.js, take a look at the following resources:
+Write your content here. Code blocks get syntax highlighting.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Velite watches for changes during dev and rebuilds the content layer automatically.
 
-## Deploy on Vercel
+## Building
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+pnpm build     # velite → search index → next build
+pnpm start     # serve production build
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Configuration
+
+Edit `src/lib/constants.ts`:
+
+- `SITE` — title, description, author
+- `GISCUS` — repo, repoId, category, categoryId (from [giscus.app](https://giscus.app))
+
+Set `NEXT_PUBLIC_SITE_URL` for production (falls back to `http://localhost:3000` in dev).
+
+## Features
+
+- Post pages with syntax highlighting (Shiki, dual light/dark themes)
+- Tags with filtered listing pages
+- Dark mode toggle (light / dark / system)
+- Full-text search with keyboard navigation (Cmd+K, ↑↓, Enter)
+- RSS feed at `/feed.xml`
+- Sitemap at `/sitemap.xml`
+- Dynamic OG images per post
+- JSON-LD structured data
+- Giscus comments
+
+## Deploy
+
+```bash
+vercel --prod
+```
+
+Set `NEXT_PUBLIC_SITE_URL` in the Vercel dashboard to your production URL.
