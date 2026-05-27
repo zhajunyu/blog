@@ -5,6 +5,7 @@ import { getPost, getPosts, getAdjacentPosts } from "@/lib/velite";
 import { MdxBody } from "@/components/post/post-body";
 import { TagBadges } from "@/components/post/tag-badge";
 import { JsonLd } from "@/components/post/json-ld";
+import { GiscusLoader } from "@/components/comments/giscus-loader";
 import { SITE } from "@/lib/constants";
 
 interface Props {
@@ -80,6 +81,10 @@ export default async function PostPage({ params }: Props) {
       </header>
 
       <MdxBody code={post.body} />
+
+      <section className="mt-16 pt-8 border-t border-border">
+        <GiscusLoader slug={post.slug} />
+      </section>
 
       {(prev || next) && (
         <nav className="mt-16 pt-8 border-t border-border">
