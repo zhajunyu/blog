@@ -1,0 +1,12 @@
+node_modules
+.pnpm-store
+.next
+out
+coverage
+playwright-report
+test-results
+*.tsbuildinfo
+.vercel
+.env
+.env*.local
+pnpm-debug.log*

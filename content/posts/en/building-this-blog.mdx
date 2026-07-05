@@ -1,0 +1,37 @@
+---
+title: "Building This Blog"
+description: ""
+date: "2026-06-23"
+category: "tech"
+tags: ["next-js", "mdx", "writing"]
+---
+
+The implementation notes behind this static-first writing system.
+
+This blog starts with a deliberately small surface area: posts are local MDX files, routes are statically generated, and metadata is derived from typed frontmatter. The goal is to keep publishing boring in the best possible way.
+
+<Callout title="Design choice">
+The structure stays minimal, while the visual system carries personality through typography, rhythm, contrast, and precise interaction states.
+</Callout>
+
+## Why static-first
+
+A personal blog does not need a database by default. Local content keeps the editing flow close to the code, gives every article a reviewable history, and makes builds predictable.
+
+The content pipeline validates each post before it reaches the page layer:
+
+```ts
+type PostFrontmatter = {
+  title: string;
+  description?: string;
+  date: string;
+  category: string;
+  tags: string[];
+};
+```
+
+That means archive pages, tag pages, RSS, sitemap output, and Open Graph metadata all share the same source of truth.
+
+## What can grow later
+
+The current version intentionally avoids accounts, comments, and a database. Those can be added when there is a real workflow that needs them. Until then, the site stays portable and cheap to operate.

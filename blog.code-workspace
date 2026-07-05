@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"extensions": {
+		"recommendations": [
+			"dbaeumer.vscode-eslint",
+			"ms-vscode.live-server",
+			"bradlc.vscode-tailwindcss",
+			"unifiedjs.vscode-mdx"
+		]
+	},
+	"settings": {
+		"editor.wordWrap": "on"
+	}
+}
