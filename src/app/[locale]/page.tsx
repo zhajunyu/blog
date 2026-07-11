@@ -23,7 +23,9 @@ export async function generateMetadata({ params }: HomePageProps): Promise<Metad
   const dictionary = getDictionary(rawLocale);
 
   return {
-    title: dictionary.site.title,
+    title: {
+      absolute: dictionary.home.metadataTitle,
+    },
     description: dictionary.site.description,
     alternates: {
       canonical: localizedPath(rawLocale),

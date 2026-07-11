@@ -12,6 +12,7 @@ function rgbFromHex(hex: string) {
 test("renders localized core routes", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/en$/);
+  await expect(page).toHaveTitle("Junyu's Blog");
   await expect(page.getByRole("heading", { name: /notes on software/i })).toBeVisible();
   await expect(
     page.getByLabel("Primary navigation").getByRole("link", { name: "Posts" }),
@@ -29,6 +30,7 @@ test("renders localized core routes", async ({ page }) => {
   await expect(page.locator("article")).toContainText("static-first");
 
   await page.goto("/zh");
+  await expect(page).toHaveTitle("Junyu 的博客");
   await expect(page.getByRole("heading", { name: /关于软件/ })).toBeVisible();
 
   await page.goto("/zh/posts");

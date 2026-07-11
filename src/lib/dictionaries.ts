@@ -23,6 +23,7 @@ export interface Dictionary {
     sitemap: string;
   };
   home: {
+    metadataTitle: string;
     title: string;
     note: string;
     latest: string;
@@ -108,6 +109,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       sitemap: "Sitemap",
     },
     home: {
+      metadataTitle: "Junyu's Blog",
       title: "Notes on software, systems, and long-lived products.",
       note: "Writing about the practical details behind building clear interfaces, reliable systems, and software that is still understandable later.",
       latest: "Latest writing",
@@ -210,6 +212,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       sitemap: "站点地图",
     },
     home: {
+      metadataTitle: "Junyu 的博客",
       title: "关于软件、系统和长期产品的笔记。",
       note: "记录构建清晰界面、可靠系统，以及多年后仍然容易理解的软件时遇到的实际细节。",
       latest: "最新文章",
