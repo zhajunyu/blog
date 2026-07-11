@@ -38,6 +38,12 @@ test("renders localized core routes", async ({ page }) => {
   await page.goto("/zh/posts/building-this-blog");
   await expect(page.getByRole("heading", { name: /构建这个博客/ })).toBeVisible();
   await expect(page.locator("article")).toContainText("静态优先");
+
+  await page.goto("/en/projects");
+  await expect(page.getByRole("link", { name: /personal blog/i })).toHaveAttribute(
+    "href",
+    "https://github.com/zhajunyu/blog",
+  );
 });
 
 test("switches language through the header control", async ({ page }) => {

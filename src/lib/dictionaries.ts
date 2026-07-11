@@ -66,6 +66,7 @@ export interface Dictionary {
     items: Array<{
       name: string;
       description: string;
+      href: string;
     }>;
   };
   post: {
@@ -160,6 +161,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
           name: "Personal Blog",
           description:
             "A static-first writing system built with Next.js, MDX, typed frontmatter, RSS, and a restrained editorial interface.",
+          href: "https://github.com/zhajunyu/blog",
         },
       ],
     },
@@ -261,6 +263,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
           name: "个人博客",
           description:
             "一个静态优先的写作系统，使用 Next.js、MDX、类型化 frontmatter、RSS 和克制的编辑式界面。",
+          href: "https://github.com/zhajunyu/blog",
         },
       ],
     },

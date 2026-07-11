@@ -48,7 +48,7 @@ export default async function ProjectsPage({ params }: ProjectsPageProps) {
       <ol className="indexed-card-grid">
         {dictionary.projects.items.map((project, index) => (
           <li key={project.name} className="indexed-card-grid-item">
-            <article className="indexed-card">
+            <a className="indexed-card" href={project.href}>
               <span className="indexed-card-index" aria-hidden="true">
                 {String(index + 1).padStart(2, "0")}
               </span>
@@ -65,7 +65,7 @@ export default async function ProjectsPage({ params }: ProjectsPageProps) {
                   {project.description}
                 </span>
               </span>
-            </article>
+            </a>
           </li>
         ))}
       </ol>
