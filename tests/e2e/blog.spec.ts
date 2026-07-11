@@ -53,7 +53,10 @@ test("switches language through the header control", async ({ page }) => {
 test("renders localized categories, tags, rss, sitemap, and legacy redirects", async ({ page }) => {
   await page.goto("/en/categories");
   await expect(page.getByRole("heading", { name: "Categories" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /tech/i })).toBeVisible();
+  const techCategory = page.getByRole("link", { name: /tech/i });
+  await expect(techCategory).toBeVisible();
+  await expect(techCategory).toContainText("Engineering notes");
+  await expect(techCategory).toHaveCSS("border-top-style", "solid");
 
   await page.goto("/en/categories/tech");
   await expect(page.getByRole("heading", { name: "Tech" })).toBeVisible();

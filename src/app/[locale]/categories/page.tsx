@@ -50,17 +50,34 @@ export default async function CategoriesPage({ params }: CategoriesPageProps) {
       </h1>
       <p className="page-intro">{dictionary.categories.intro}</p>
 
-      <div className="tag-cloud" style={{ marginTop: 44 }}>
-        {categories.map((category) => (
-          <Link
-            key={category.slug}
-            className="tag-pill"
-            href={localizedPath(rawLocale, `/categories/${category.slug}`)}
-          >
-            {category.name} ({category.count})
-          </Link>
+      <ul className="category-grid">
+        {categories.map((category, index) => (
+          <li key={category.slug} className="category-grid-item">
+            <Link
+              className="category-card"
+              href={localizedPath(rawLocale, `/categories/${category.slug}`)}
+            >
+              <span className="category-card-index" aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span className="category-card-content">
+                <span className="category-card-heading">
+                  <span className="category-card-title">{category.name}</span>
+                  <span className="category-card-arrow" aria-hidden="true">
+                    ↗
+                  </span>
+                </span>
+                <span className="category-card-description">
+                  {category.description}
+                </span>
+                <span className="category-card-count">
+                  {dictionary.categories.postCount(category.count)}
+                </span>
+              </span>
+            </Link>
+          </li>
         ))}
-      </div>
+      </ul>
     </section>
   );
 }

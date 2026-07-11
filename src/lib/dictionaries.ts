@@ -82,6 +82,7 @@ export interface Dictionary {
   };
   tagLabels: Record<TagId, string>;
   categoryLabels: Record<CategoryId, string>;
+  categoryDescriptions: Record<CategoryId, string>;
 }
 
 export const dictionaries: Record<Locale, Dictionary> = {
@@ -183,6 +184,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
     categoryLabels: {
       tech: "Tech",
     },
+    categoryDescriptions: {
+      tech: "Engineering notes on building clear interfaces, dependable systems, and software that remains understandable over time.",
+    },
   },
   zh: {
     site: {
@@ -281,6 +285,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
     categoryLabels: {
       tech: "Tech",
     },
+    categoryDescriptions: {
+      tech: "关于构建清晰界面、可靠系统，以及长期保持可理解的软件的工程笔记。",
+    },
   },
 };
 
@@ -294,4 +301,11 @@ export function getTagLabel(locale: Locale, tag: string) {
 
 export function getCategoryLabel(locale: Locale, category: string) {
   return dictionaries[locale].categoryLabels[category as CategoryId] ?? category;
+}
+
+export function getCategoryDescription(locale: Locale, category: string) {
+  return (
+    dictionaries[locale].categoryDescriptions[category as CategoryId] ??
+    dictionaries[locale].categories.metadataDescription
+  );
 }

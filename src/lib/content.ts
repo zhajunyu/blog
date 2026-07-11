@@ -5,7 +5,11 @@ import matter from "gray-matter";
 import { cache } from "react";
 import { z } from "zod";
 
-import { getCategoryLabel, getTagLabel } from "@/lib/dictionaries";
+import {
+  getCategoryDescription,
+  getCategoryLabel,
+  getTagLabel,
+} from "@/lib/dictionaries";
 import {
   formatDisplayDate,
   formatReadingTime,
@@ -70,6 +74,7 @@ export interface CategorySummary {
   id: string;
   slug: string;
   name: string;
+  description: string;
   count: number;
 }
 
@@ -199,6 +204,8 @@ function summarizeCategories(locale: Locale, posts: Post[]): CategorySummary[] {
       id: post.category,
       slug: post.category,
       name: current?.name ?? getCategoryLabel(locale, post.category),
+      description:
+        current?.description ?? getCategoryDescription(locale, post.category),
       count: (current?.count ?? 0) + 1,
     });
   }

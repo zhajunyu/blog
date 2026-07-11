@@ -9,7 +9,11 @@ import {
   parsePostFile,
   sortPosts,
 } from "@/lib/content";
-import { getCategoryLabel, getTagLabel } from "@/lib/dictionaries";
+import {
+  getCategoryDescription,
+  getCategoryLabel,
+  getTagLabel,
+} from "@/lib/dictionaries";
 
 const basePost = `---
 title: "Reliable Interfaces"
@@ -229,6 +233,8 @@ Draft body.
     expect(getCategorySlug("Tech Notes")).toBe("tech-notes");
     expect(getCategoryLabel("en", "tech")).toBe("Tech");
     expect(getCategoryLabel("zh", "tech")).toBe("Tech");
+    expect(getCategoryDescription("en", "tech")).toContain("Engineering notes");
+    expect(getCategoryDescription("zh", "tech")).toContain("工程笔记");
   });
 
   it("extracts article headings outside fenced code blocks", () => {

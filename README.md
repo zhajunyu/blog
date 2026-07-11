@@ -102,13 +102,17 @@ Every post must have exactly one category. Categories in frontmatter are stable 
 category: "tech"
 ```
 
-Visible labels are localized in `src/lib/dictionaries.ts`.
+Visible labels and category-card descriptions are localized in
+`src/lib/dictionaries.ts`.
 
-When adding a new category ID, add labels for both locales:
+When adding a new category ID, add its label and description for both locales:
 
 ```ts
 categoryLabels: {
   "new-category": "New category"
+},
+categoryDescriptions: {
+  "new-category": "A concise description of the writing in this category."
 }
 ```
 
