@@ -65,13 +65,27 @@ test("renders localized categories, tags, rss, sitemap, and legacy redirects", a
   await expect(techCategory).toBeVisible();
   await expect(techCategory).toContainText("Engineering notes");
   await expect(techCategory).toHaveCSS("border-top-style", "solid");
+  await expect(page.getByRole("link", { name: /essays/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /novels/i })).toBeVisible();
+  await expect(page.locator(".indexed-card-title")).toHaveText([
+    "Tech",
+    "Essays",
+    "Novels",
+  ]);
+
+  await page.goto("/zh/categories");
+  await expect(page.locator(".indexed-card-title")).toHaveText([
+    "科技",
+    "随笔",
+    "小说",
+  ]);
 
   await page.goto("/en/categories/tech");
   await expect(page.getByRole("heading", { name: "Tech" })).toBeVisible();
   await expect(page.getByRole("link", { name: /building this blog/i })).toBeVisible();
 
   await page.goto("/zh/categories/tech");
-  await expect(page.getByRole("heading", { name: "Tech" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "科技" })).toBeVisible();
   await expect(page.getByRole("link", { name: /构建这个博客/ })).toBeVisible();
 
   await page.goto("/en/tags/next-js");

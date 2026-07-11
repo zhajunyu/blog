@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import {
   getCategoryDescription,
+  getCategoryIds,
   getCategoryLabel,
   getTagLabel,
 } from "@/lib/dictionaries";
@@ -195,7 +196,18 @@ function summarizeTags(locale: Locale, posts: Post[]): TagSummary[] {
 }
 
 function summarizeCategories(locale: Locale, posts: Post[]): CategorySummary[] {
-  const categories = new Map<string, CategorySummary>();
+  const categories = new Map<string, CategorySummary>(
+    getCategoryIds(locale).map((id) => [
+      id,
+      {
+        id,
+        slug: id,
+        name: getCategoryLabel(locale, id),
+        description: getCategoryDescription(locale, id),
+        count: 0,
+      },
+    ]),
+  );
 
   for (const post of posts) {
     const current = categories.get(post.category);
@@ -210,13 +222,7 @@ function summarizeCategories(locale: Locale, posts: Post[]): CategorySummary[] {
     });
   }
 
-  return [...categories.values()].sort((left, right) => {
-    if (right.count !== left.count) {
-      return right.count - left.count;
-    }
-
-    return left.name.localeCompare(right.name);
-  });
+  return [...categories.values()];
 }
 
 export const getContentAvailability = cache(async () => {

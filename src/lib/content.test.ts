@@ -232,7 +232,7 @@ Draft body.
   it("creates stable category slugs and localized labels", () => {
     expect(getCategorySlug("Tech Notes")).toBe("tech-notes");
     expect(getCategoryLabel("en", "tech")).toBe("Tech");
-    expect(getCategoryLabel("zh", "tech")).toBe("Tech");
+    expect(getCategoryLabel("zh", "tech")).toBe("科技");
     expect(getCategoryDescription("en", "tech")).toContain("Engineering notes");
     expect(getCategoryDescription("zh", "tech")).toContain("工程笔记");
   });
