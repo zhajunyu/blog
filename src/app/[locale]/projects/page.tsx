@@ -45,14 +45,30 @@ export default async function ProjectsPage({ params }: ProjectsPageProps) {
       </h1>
       <p className="page-intro">{dictionary.projects.intro}</p>
 
-      <div className="project-list" style={{ marginTop: 48 }}>
-        {dictionary.projects.items.map((project) => (
-          <article key={project.name} className="project-item">
-            <h2>{project.name}</h2>
-            <p>{project.description}</p>
-          </article>
+      <ol className="indexed-card-grid">
+        {dictionary.projects.items.map((project, index) => (
+          <li key={project.name} className="indexed-card-grid-item">
+            <article className="indexed-card">
+              <span className="indexed-card-index" aria-hidden="true">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span className="indexed-card-content">
+                <span className="indexed-card-heading">
+                  <span className="indexed-card-title" role="heading" aria-level={2}>
+                    {project.name}
+                  </span>
+                  <span className="indexed-card-arrow" aria-hidden="true">
+                    ↗
+                  </span>
+                </span>
+                <span className="indexed-card-description">
+                  {project.description}
+                </span>
+              </span>
+            </article>
+          </li>
         ))}
-      </div>
+      </ol>
     </section>
   );
 }
