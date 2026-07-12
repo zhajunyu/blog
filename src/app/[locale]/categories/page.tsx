@@ -61,12 +61,7 @@ export default async function CategoriesPage({ params }: CategoriesPageProps) {
                 {String(index + 1).padStart(2, "0")}
               </span>
               <span className="indexed-card-content">
-                <span className="indexed-card-heading">
-                  <span className="indexed-card-title">{category.name}</span>
-                  <span className="indexed-card-arrow" aria-hidden="true">
-                    ↗
-                  </span>
-                </span>
+                <span className="indexed-card-title">{category.name}</span>
                 <span className="indexed-card-description">
                   {category.description}
                 </span>

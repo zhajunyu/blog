@@ -53,13 +53,8 @@ export default async function ProjectsPage({ params }: ProjectsPageProps) {
                 {String(index + 1).padStart(2, "0")}
               </span>
               <span className="indexed-card-content">
-                <span className="indexed-card-heading">
-                  <span className="indexed-card-title" role="heading" aria-level={2}>
-                    {project.name}
-                  </span>
-                  <span className="indexed-card-arrow" aria-hidden="true">
-                    ↗
-                  </span>
+                <span className="indexed-card-title" role="heading" aria-level={2}>
+                  {project.name}
                 </span>
                 <span className="indexed-card-description">
                   {project.description}
