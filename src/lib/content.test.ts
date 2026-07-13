@@ -50,6 +50,32 @@ describe("content parsing", () => {
     expect(post.readingTime).toBe("1 分钟阅读");
   });
 
+  it("estimates reading time for long English content", () => {
+    const post = parsePostFile(
+      "en",
+      "long-english-post",
+      basePost.replace(
+        "Readable systems start with boring contracts.",
+        "word ".repeat(221),
+      ),
+    );
+
+    expect(post.readingTime).toBe("2 min read");
+  });
+
+  it("estimates reading time for Chinese content without spaces", () => {
+    const post = parsePostFile(
+      "zh",
+      "long-chinese-post",
+      basePost.replace(
+        "Readable systems start with boring contracts.",
+        "文".repeat(501),
+      ),
+    );
+
+    expect(post.readingTime).toBe("2 分钟阅读");
+  });
+
   it("allows missing descriptions", () => {
     const post = parsePostFile(
       "en",

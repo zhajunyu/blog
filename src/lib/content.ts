@@ -19,6 +19,8 @@ import {
 } from "@/lib/i18n";
 
 const postsRootDirectory = path.join(process.cwd(), "content", "posts");
+const wordsPerMinute = 220;
+const cjkCharactersPerMinute = 500;
 
 const optionalTextSchema = z.preprocess(
   (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
@@ -373,9 +375,19 @@ function estimateReadingTimeMinutes(content: string) {
   const text = content
     .replace(/```[\s\S]*?```/g, "")
     .replace(/<[^>]+>/g, " ");
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const cjkCharacters = text.match(
+    /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu,
+  );
+  const nonCjkText = text.replace(
+    /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu,
+    " ",
+  );
+  const words = nonCjkText.match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu);
+  const readingTime =
+    (words?.length ?? 0) / wordsPerMinute +
+    (cjkCharacters?.length ?? 0) / cjkCharactersPerMinute;
 
-  return Math.max(1, Math.ceil(words / 220));
+  return Math.max(1, Math.ceil(readingTime));
 }
 
 function toDateString(date: Date) {

@@ -94,6 +94,9 @@ Optional frontmatter: `description`, `updated`, `draft`, and `coverImage`.
 
 Blank descriptions are treated as omitted. Draft posts are visible in development and excluded from production builds.
 
+Reading time is estimated from the post body at 220 words per minute for
+space-delimited text and 500 characters per minute for CJK text.
+
 ## Categories
 
 Every post must have exactly one category. Categories in frontmatter are stable lowercase IDs:
