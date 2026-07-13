@@ -1,7 +1,7 @@
 import type { Locale } from "@/lib/i18n";
 
-export type TagId = "next-js" | "mdx" | "writing" | "engineering";
-export type CategoryId = "tech" | "essays" | "novels";
+export type TagId = "next-js" | "mdx" | "writing" | "engineering" | "bl";
+export type CategoryId = "tech" | "essays" | "fictions";
 
 export interface Dictionary {
   site: {
@@ -130,7 +130,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       postCount: (count) => `${count} ${count === 1 ? "post" : "posts"} filed under this topic.`,
     },
     categories: {
-      order: ["tech", "essays", "novels"],
+      order: ["tech", "essays", "fictions"],
       metadataTitle: "Categories",
       metadataDescription: "Browse writing by category.",
       title: "Categories",
@@ -186,16 +186,17 @@ export const dictionaries: Record<Locale, Dictionary> = {
       mdx: "MDX",
       writing: "Writing",
       engineering: "Engineering",
+      bl: "BL",
     },
     categoryLabels: {
       tech: "Tech",
       essays: "Essays",
-      novels: "Novels",
+      fictions: "Fictions",
     },
     categoryDescriptions: {
       tech: "Engineering notes on building clear interfaces, dependable systems, and software that remains understandable over time.",
       essays: "Reflective writing on software, ideas, and the work of making things.",
-      novels: "Long-form fiction and stories.",
+      fictions: "Long-form fiction and stories.",
     },
   },
   zh: {
@@ -238,7 +239,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       postCount: (count) => `${count} 篇文章属于这个主题。`,
     },
     categories: {
-      order: ["tech", "essays", "novels"],
+      order: ["tech", "essays", "fictions"],
       metadataTitle: "分类",
       metadataDescription: "按分类浏览文章。",
       title: "分类",
@@ -294,16 +295,17 @@ export const dictionaries: Record<Locale, Dictionary> = {
       mdx: "MDX",
       writing: "写作",
       engineering: "工程",
+      bl: "BL",
     },
     categoryLabels: {
       tech: "科技",
       essays: "随笔",
-      novels: "小说",
+      fictions: "小说",
     },
     categoryDescriptions: {
       tech: "关于构建清晰界面、可靠系统，以及长期保持可理解的软件的工程笔记。",
       essays: "关于软件、思想，以及创造事物过程的思考性写作。",
-      novels: "长篇小说与故事。",
+      fictions: "长篇小说与故事。",
     },
   },
 };

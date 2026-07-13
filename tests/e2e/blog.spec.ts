@@ -66,11 +66,11 @@ test("renders localized categories, tags, rss, sitemap, and legacy redirects", a
   await expect(techCategory).toContainText("Engineering notes");
   await expect(techCategory).toHaveCSS("border-top-style", "solid");
   await expect(page.getByRole("link", { name: /essays/i })).toBeVisible();
-  await expect(page.getByRole("link", { name: /novels/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /fictions/i })).toBeVisible();
   await expect(page.locator(".indexed-card-title")).toHaveText([
     "Tech",
     "Essays",
-    "Novels",
+    "Fictions",
   ]);
 
   await page.goto("/zh/categories");
