@@ -1,9 +1,11 @@
-import { siteConfig } from "@/lib/site";
-
 export function SiteFooter() {
   return (
     <footer className="site-footer">
-      <p>{siteConfig.name}</p>
+      <p>
+        © 2026 Junyu Zha
+        <br />
+        All Rights Reserved.
+      </p>
     </footer>
   );
 }
