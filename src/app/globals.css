@@ -205,6 +205,11 @@ a:hover {
     transform 160ms ease;
 }
 
+.header-icon-control svg {
+  width: 23px;
+  height: 23px;
+}
+
 .header-icon-control:hover {
   color: var(--color-accent);
 }
@@ -1596,12 +1601,20 @@ a:hover {
     gap: 4px;
   }
 
+  .site-header-utilities {
+    gap: 4px;
+  }
+
   .site-header-actions > .site-nav {
     display: none;
   }
 
   .mobile-navigation {
     display: block;
+  }
+
+  .mobile-menu-icon-stack {
+    transform: none;
   }
 
   .search-dialog {
