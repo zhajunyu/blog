@@ -72,6 +72,41 @@ test("renders MDX list markers and underlined links", async ({ page }) => {
   );
 });
 
+test("highlights fenced code by language and preserves plain text", async ({ page }) => {
+  await page.goto("/en/posts/building-this-blog");
+
+  const typescriptBlock = page
+    .locator(".article-body pre.shiki")
+    .filter({ hasText: "type PostFrontmatter" });
+
+  await expect(typescriptBlock).toContainText("description?: string;");
+  expect(
+    await typescriptBlock.locator("code .line > span[style*='--shiki-light']").count(),
+  ).toBeGreaterThan(1);
+
+  await page.goto("/en/posts/surge-proxy-configuration");
+
+  const iniBlock = page
+    .locator(".article-body pre.shiki")
+    .filter({ hasText: "[General]" })
+    .first();
+  const textBlock = page
+    .locator(".article-body pre.shiki")
+    .filter({ hasText: "Remote subscription" });
+
+  expect(
+    await iniBlock.locator("code .line > span[style*='--shiki-light']").count(),
+  ).toBeGreaterThan(1);
+  await expect(textBlock).toContainText("Request -> Custom rules");
+  await expect(page.locator(".article-body p code").first()).not.toHaveClass(/shiki/);
+
+  const plainTextColors = await textBlock.locator("code .line > span").evaluateAll(
+    (tokens) => [...new Set(tokens.map((token) => getComputedStyle(token).color))],
+  );
+
+  expect(plainTextColors).toHaveLength(1);
+});
+
 test("switches language through the header control", async ({ page }) => {
   await page.goto("/en/posts/building-this-blog");
   await page.getByLabel("Language").getByRole("link", { name: "中文" }).click();
@@ -196,16 +231,27 @@ test.describe("system color scheme", () => {
           ? { bodyEnd: "#1a1c13", bodyStart: "#0f100c", ink: "#f2efe4", paper: "#12130e" }
           : { bodyEnd: "#ecefe7", bodyStart: "#fbfbf8", ink: "#151612", paper: "#f7f7f3" };
 
-      const palette = await page.evaluate(() => {
+      const palette = await page.evaluate((activeColorScheme) => {
         const root = getComputedStyle(document.documentElement);
         const body = getComputedStyle(document.body);
         const articleParagraph = document.querySelector<HTMLElement>(".article-body p");
         const codeBlock = document.querySelector<HTMLElement>(".article-body pre");
         const callout = document.querySelector<HTMLElement>(".mdx-callout");
+        const highlightedToken = document.querySelector<HTMLElement>(
+          ".article-body pre.shiki span[style*='--shiki-light']",
+        );
 
-        if (!articleParagraph || !codeBlock || !callout) {
+        if (!articleParagraph || !codeBlock || !callout || !highlightedToken) {
           throw new Error("Expected themed article content was not rendered.");
         }
+
+        const activeTokenProperty =
+          activeColorScheme === "dark" ? "--shiki-dark" : "--shiki-light";
+        const expectedToken = document.createElement("span");
+        expectedToken.style.color = highlightedToken.style.getPropertyValue(activeTokenProperty);
+        document.body.append(expectedToken);
+        const expectedTokenColor = getComputedStyle(expectedToken).color;
+        expectedToken.remove();
 
         return {
           articleText: getComputedStyle(articleParagraph).color,
@@ -214,10 +260,13 @@ test.describe("system color scheme", () => {
           bodyStart: root.getPropertyValue("--color-body-start").trim(),
           calloutBackground: getComputedStyle(callout).backgroundColor,
           codeBackground: getComputedStyle(codeBlock).backgroundColor,
+          codeOverflow: getComputedStyle(codeBlock).overflowX,
           ink: root.getPropertyValue("--color-ink").trim(),
           paper: root.getPropertyValue("--color-paper").trim(),
+          tokenColor: getComputedStyle(highlightedToken).color,
+          expectedTokenColor,
         };
-      });
+      }, colorScheme);
 
       expect(palette).toMatchObject(expectedPalette);
       expect(palette.bodyBackgroundImage).toContain(rgbFromHex(expectedPalette.bodyStart));
@@ -226,6 +275,8 @@ test.describe("system color scheme", () => {
       expect(palette.articleText).not.toBe("rgba(0, 0, 0, 0)");
       expect(palette.calloutBackground).not.toBe("rgba(0, 0, 0, 0)");
       expect(palette.codeBackground).not.toBe("rgba(0, 0, 0, 0)");
+      expect(palette.codeOverflow).toBe("auto");
+      expect(palette.tokenColor).toBe(palette.expectedTokenColor);
     });
   }
 });

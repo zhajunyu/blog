@@ -97,6 +97,21 @@ Blank descriptions are treated as omitted. Draft posts are visible in developmen
 Reading time is estimated from the post body at 220 words per minute for
 space-delimited text and 500 characters per minute for CJK text.
 
+### Code blocks
+
+Add a supported language identifier to fenced code blocks to enable syntax
+highlighting:
+
+````mdx
+```ts
+const published = true;
+```
+````
+
+Use `text` for diagrams and other content that should remain monochrome. An
+unsupported language identifier fails the build so that authoring mistakes are
+caught before deployment. Inline code is not syntax highlighted.
+
 ## Categories
 
 Every post must have exactly one category. Categories in frontmatter are stable lowercase IDs:

@@ -729,6 +729,27 @@ a:hover {
   line-height: 1.7;
 }
 
+.article-body pre.shiki {
+  color: var(--shiki-light);
+}
+
+.article-body pre.shiki span {
+  color: var(--shiki-light);
+  font-style: var(--shiki-light-font-style);
+  font-weight: var(--shiki-light-font-weight);
+  text-decoration: var(--shiki-light-text-decoration);
+}
+
+@media (prefers-color-scheme: dark) {
+  .article-body pre.shiki,
+  .article-body pre.shiki span {
+    color: var(--shiki-dark);
+    font-style: var(--shiki-dark-font-style);
+    font-weight: var(--shiki-dark-font-weight);
+    text-decoration: var(--shiki-dark-text-decoration);
+  }
+}
+
 .article-body code {
   font-family: var(--font-mono);
 }

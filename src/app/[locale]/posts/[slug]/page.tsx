@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import rehypeShiki from "@shikijs/rehype";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
@@ -173,7 +174,19 @@ export default async function PostPage({ params }: PostPageProps) {
               options={{
                 mdxOptions: {
                   remarkPlugins: [remarkGfm],
-                  rehypePlugins: [rehypeSlug],
+                  rehypePlugins: [
+                    rehypeSlug,
+                    [
+                      rehypeShiki,
+                      {
+                        themes: {
+                          light: "github-dark",
+                          dark: "github-dark-high-contrast",
+                        },
+                        defaultColor: false,
+                      },
+                    ],
+                  ],
                 },
               }}
             />
