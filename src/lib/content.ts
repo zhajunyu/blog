@@ -19,6 +19,7 @@ import {
 } from "@/lib/i18n";
 
 const postsRootDirectory = path.join(process.cwd(), "content", "posts");
+const aboutRootDirectory = path.join(process.cwd(), "content", "about");
 const wordsPerMinute = 220;
 const cjkCharactersPerMinute = 500;
 
@@ -49,6 +50,15 @@ const frontmatterSchema = z.object({
   draft: z.boolean().default(false),
   coverImage: z.string().trim().optional(),
 });
+
+const aboutFrontmatterSchema = z.object({
+  title: z.string().trim().min(1),
+});
+
+export interface AboutContent {
+  title: string;
+  body: string;
+}
 
 export interface Post {
   locale: Locale;
@@ -86,6 +96,31 @@ export interface PostHeading {
   level: 2 | 3 | 4;
   title: string;
 }
+
+export function parseAboutFile(locale: Locale, fileContents: string): AboutContent {
+  const { content, data } = matter(fileContents);
+  const result = aboutFrontmatterSchema.safeParse(data);
+
+  if (!result.success) {
+    const issues = result.error.issues
+      .map((issue) => `${issue.path.join(".") || "frontmatter"}: ${issue.message}`)
+      .join("; ");
+
+    throw new Error(`Invalid frontmatter in about/${locale}/about.mdx: ${issues}`);
+  }
+
+  return {
+    ...result.data,
+    body: content.trim(),
+  };
+}
+
+export const getAboutContent = cache(async (locale: Locale) => {
+  const filePath = path.join(aboutRootDirectory, locale, "about.mdx");
+  const fileContents = await fs.readFile(filePath, "utf8");
+
+  return parseAboutFile(locale, fileContents);
+});
 
 interface GetPostsOptions {
   includeDrafts?: boolean;

@@ -70,6 +70,17 @@ test("renders localized core routes", async ({ page }) => {
     "href",
     "https://github.com/zhajunyu/blog",
   );
+
+  await expect(page.locator('a[href="/en/about"]').first()).toHaveAttribute(
+    "href",
+    "/en/about",
+  );
+  await page.goto("/en/about");
+  await expect(page).toHaveURL(/\/en\/about$/);
+  await expect(page.getByRole("heading", { name: "What this blog is for" })).toBeVisible();
+
+  await page.goto("/zh/about");
+  await expect(page.getByRole("heading", { name: "这个博客记录什么" })).toBeVisible();
 });
 
 test("renders MDX list markers and underlined links", async ({ page }) => {

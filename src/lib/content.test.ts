@@ -6,6 +6,7 @@ import {
   getPostHeadings,
   getTagSlug,
   hasLayeredPostHeadings,
+  parseAboutFile,
   parsePostFile,
   sortPosts,
 } from "@/lib/content";
@@ -27,6 +28,23 @@ Readable systems start with boring contracts.
 `;
 
 describe("content parsing", () => {
+  it("parses localized About frontmatter and MDX content", () => {
+    const about = parseAboutFile(
+      "en",
+      `---
+title: "About"
+---
+
+## What this blog is for
+`,
+    );
+
+    expect(about).toEqual({
+      title: "About",
+      body: "## What this blog is for",
+    });
+  });
+
   it("parses valid frontmatter into a localized post", () => {
     const post = parsePostFile("en", "reliable-interfaces", basePost);
 

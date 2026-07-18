@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getDictionary } from "@/lib/dictionaries";
+import { MdxContent } from "@/components/mdx-content";
+import { getAboutContent } from "@/lib/content";
 import { isLocale, localizedAlternates, localizedPath } from "@/lib/i18n";
 
 interface AboutPageProps {
@@ -17,11 +18,10 @@ export async function generateMetadata({ params }: AboutPageProps): Promise<Meta
     return {};
   }
 
-  const dictionary = getDictionary(rawLocale);
+  const about = await getAboutContent(rawLocale);
 
   return {
-    title: dictionary.about.metadataTitle,
-    description: dictionary.about.metadataDescription,
+    title: about.title,
     alternates: {
       canonical: localizedPath(rawLocale, "/about"),
       languages: localizedAlternates("/about"),
@@ -36,24 +36,16 @@ export default async function AboutPage({ params }: AboutPageProps) {
     notFound();
   }
 
-  const dictionary = getDictionary(rawLocale);
+  const about = await getAboutContent(rawLocale);
 
   return (
     <div className="split-page">
       <aside>
-        <h1 className="page-title">{dictionary.about.title}</h1>
+        <h1 className="page-title">{about.title}</h1>
       </aside>
 
       <div className="body-copy">
-        {dictionary.about.paragraphs.map((paragraph) => (
-          <p key={paragraph}>{paragraph}</p>
-        ))}
-        {dictionary.about.sections.map((section) => (
-          <section key={section.title}>
-            <h2>{section.title}</h2>
-            <p>{section.body}</p>
-          </section>
-        ))}
+        <MdxContent source={about.body} />
       </div>
     </div>
   );

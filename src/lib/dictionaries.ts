@@ -59,16 +59,6 @@ export interface Dictionary {
     intro: string;
     postCount: (count: number) => string;
   };
-  about: {
-    metadataTitle: string;
-    metadataDescription: string;
-    title: string;
-    paragraphs: string[];
-    sections: Array<{
-      title: string;
-      body: string;
-    }>;
-  };
   projects: {
     metadataTitle: string;
     metadataDescription: string;
@@ -146,24 +136,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "Categories",
       intro: "Browse essays by their primary area.",
       postCount: (count) => `${count} ${count === 1 ? "post" : "posts"} in this category.`,
-    },
-    about: {
-      metadataTitle: "About",
-      metadataDescription: "About the author and this blog.",
-      title: "Junyu Zha",
-      paragraphs: [
-        "I write about software engineering through the lens of clarity: interfaces that stay understandable, systems that fail predictably, and product decisions that survive contact with real maintenance work.",
-      ],
-      sections: [
-        {
-          title: "What this blog is for",
-          body: "This is a place for notes that are too durable for chat and too specific for generic documentation: implementation writeups, design decisions, debugging notes, and essays on engineering practice.",
-        },
-        {
-          title: "How posts are written",
-          body: "Posts live in MDX files, which keeps writing portable while still allowing custom components when an article needs a diagram, callout, or richer example.",
-        },
-      ],
     },
     projects: {
       metadataTitle: "Projects",
@@ -259,24 +231,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
       title: "分类",
       intro: "按文章的主要领域浏览。",
       postCount: (count) => `${count} 篇文章属于这个分类。`,
-    },
-    about: {
-      metadataTitle: "关于",
-      metadataDescription: "关于作者和这个博客。",
-      title: "Junyu Zha",
-      paragraphs: [
-        "我从清晰性出发写软件工程：保持可理解的接口、可预测失败的系统，以及能经受维护工作的产品决策。",
-      ],
-      sections: [
-        {
-          title: "这个博客记录什么",
-          body: "这里存放比聊天更持久、又比通用文档更具体的笔记：实现记录、设计决策、调试过程，以及关于工程实践的文章。",
-        },
-        {
-          title: "文章如何编写",
-          body: "文章以 MDX 文件保存，让写作保持可移植，同时在需要图表、提示块或更丰富示例时也能使用自定义组件。",
-        },
-      ],
     },
     projects: {
       metadataTitle: "项目",
