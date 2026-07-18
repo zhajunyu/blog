@@ -16,7 +16,6 @@ export function SiteFooter({ locale, dictionary }: SiteFooterProps) {
       <p>{siteConfig.name}</p>
       <div className="footer-links">
         <Link href={localizedPath(locale, "/rss.xml")}>{dictionary.footer.rss}</Link>
-        <Link href="/sitemap.xml">{dictionary.footer.sitemap}</Link>
       </div>
     </footer>
   );

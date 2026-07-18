@@ -32,7 +32,6 @@ export interface Dictionary {
   };
   footer: {
     rss: string;
-    sitemap: string;
   };
   home: {
     metadataTitle: string;
@@ -123,7 +122,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     footer: {
       rss: "RSS",
-      sitemap: "Sitemap",
     },
     home: {
       metadataTitle: "Junyu's Blog",
@@ -239,7 +237,6 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     footer: {
       rss: "RSS",
-      sitemap: "站点地图",
     },
     home: {
       metadataTitle: "Junyu 的博客",

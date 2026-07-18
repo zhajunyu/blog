@@ -48,6 +48,12 @@ export async function generateMetadata({
     },
     description: dictionary.site.description,
     authors: [{ name: siteConfig.author }],
+    robots: {
+      index: false,
+      follow: false,
+      noarchive: true,
+      nosnippet: true,
+    },
     openGraph: {
       type: "website",
       locale: localeDetails[rawLocale].ogLocale,

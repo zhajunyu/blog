@@ -323,7 +323,7 @@ test("keeps homepage sections separate while scrolling", async ({ page }) => {
   expect(layout.titleLineHeightRatio).toBeGreaterThanOrEqual(1.07);
 });
 
-test("renders localized categories, tags, rss, sitemap, and legacy redirects", async ({ page }) => {
+test("renders localized categories, tags, rss, and legacy redirects", async ({ page }) => {
   await page.goto("/en/categories");
   await expect(page.getByRole("heading", { name: "Categories" })).toBeVisible();
   const techCategory = page.getByRole("link", { name: /tech/i });
@@ -362,13 +362,6 @@ test("renders localized categories, tags, rss, sitemap, and legacy redirects", a
   const rssResponse = await page.goto("/zh/rss.xml");
   expect(rssResponse?.headers()["content-type"]).toContain("application/rss+xml");
   await expect(page.locator("body")).toContainText("构建这个博客");
-
-  const sitemapResponse = await page.goto("/sitemap.xml");
-  expect(sitemapResponse?.headers()["content-type"]).toContain("application/xml");
-  await expect(page.locator("body")).toContainText("/en/posts/building-this-blog");
-  await expect(page.locator("body")).toContainText("/en/categories/tech");
-  await expect(page.locator("body")).toContainText("/zh/posts/building-this-blog");
-  await expect(page.locator("body")).toContainText("/zh/categories/tech");
 
   await page.goto("/blog/building-this-blog");
   await expect(page).toHaveURL(/\/en\/posts\/building-this-blog$/);

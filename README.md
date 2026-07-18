@@ -57,13 +57,6 @@ Every public page is locale-prefixed:
 
 The root route redirects to `/en`. Legacy `/blog` routes redirect to `/en/posts`.
 
-Global routes:
-
-```txt
-/robots.txt
-/sitemap.xml
-```
-
 ## Writing Posts
 
 Posts live under `content/posts/{locale}/{slug}.mdx`.
