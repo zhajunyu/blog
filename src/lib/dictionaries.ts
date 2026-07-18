@@ -99,9 +99,9 @@ export interface Dictionary {
 export const dictionaries: Record<Locale, Dictionary> = {
   en: {
     site: {
-      title: "Junyu Zha - Notes on software and systems",
+      title: "Junyu Zha - Notes on making, living, and imagining",
       description:
-        "A personal blog about software engineering, product craft, and durable systems.",
+        "Technical writing, essays, and fiction about the systems we build, the lives around them, and the worlds we imagine.",
     },
     nav: {
       homeAria: "Home",
@@ -119,16 +119,16 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     home: {
       metadataTitle: "Junyu's Blog",
-      title: "Notes on software, systems, and long-lived products.",
-      note: "Writing about the practical details behind building clear interfaces, reliable systems, and software that is still understandable later.",
+      title: "Notes on making, living, and imagining.",
+      note: "Technical writing, essays, and fiction about the systems we build, the lives around them, and the worlds we imagine.",
       latest: "Latest writing",
       allPosts: "All posts",
     },
     posts: {
       metadataTitle: "Posts",
-      metadataDescription: "All published notes and essays.",
+      metadataDescription: "All published technical writing, essays, and fiction.",
       title: "Posts",
-      intro: "Essays, implementation notes, and decisions worth keeping searchable.",
+      intro: "Technical writing, essays, and fiction kept together in one archive.",
     },
     tags: {
       metadataTitle: "Tags",
@@ -206,14 +206,14 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     categoryDescriptions: {
       tech: "Engineering notes on building clear interfaces, dependable systems, and software that remains understandable over time.",
-      essays: "Reflective writing on software, ideas, and the work of making things.",
+      essays: "Reflective writing on places, memory, ideas, and everyday life.",
       fictions: "Long-form fiction and stories.",
     },
   },
   zh: {
     site: {
-      title: "Junyu Zha - 关于软件与系统的笔记",
-      description: "关于软件工程、产品打磨和可持续系统的个人博客。",
+      title: "Junyu Zha - 关于构建、生活与想象的笔记",
+      description: "关于技术、生活与虚构的文章：记录我们构建的系统、身处的生活，以及想象出的世界。",
     },
     nav: {
       homeAria: "首页",
@@ -231,16 +231,16 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     home: {
       metadataTitle: "Junyu 的博客",
-      title: "关于软件、系统和长期产品的笔记。",
-      note: "记录构建清晰界面、可靠系统，以及多年后仍然容易理解的软件时遇到的实际细节。",
+      title: "关于构建、生活与想象的笔记。",
+      note: "以技术文章、随笔和小说，记录我们构建的系统、身处的生活，以及想象出的世界。",
       latest: "最新文章",
       allPosts: "全部文章",
     },
     posts: {
       metadataTitle: "文章",
-      metadataDescription: "所有已发布的笔记和文章。",
+      metadataDescription: "所有已发布的技术文章、随笔和小说。",
       title: "文章",
-      intro: "值得保留下来的文章、实现笔记和工程决策。",
+      intro: "技术文章、随笔和小说，都收在这个归档里。",
     },
     tags: {
       metadataTitle: "标签",
@@ -318,7 +318,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
     },
     categoryDescriptions: {
       tech: "关于构建清晰界面、可靠系统，以及长期保持可理解的软件的工程笔记。",
-      essays: "关于软件、思想，以及创造事物过程的思考性写作。",
+      essays: "关于地方、记忆、想法与日常生活的思考性写作。",
       fictions: "长篇小说与故事。",
     },
   },

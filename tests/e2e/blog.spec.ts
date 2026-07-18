@@ -13,7 +13,10 @@ test("renders localized core routes", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/en$/);
   await expect(page).toHaveTitle("Junyu's Blog");
-  await expect(page.getByRole("heading", { name: /notes on software/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /notes on making/i })).toBeVisible();
+  await expect(page.locator(".hero-deck")).toContainText(
+    "Technical writing, essays, and fiction",
+  );
   await expect(
     page.getByLabel("Primary navigation").getByRole("link", { name: "Posts" }),
   ).toBeVisible();
@@ -24,6 +27,10 @@ test("renders localized core routes", async ({ page }) => {
   await page.goto("/en/posts");
   await expect(page.getByRole("heading", { name: "Posts" })).toBeVisible();
   await expect(page.getByRole("link", { name: /building this blog/i })).toBeVisible();
+  await expect(page.locator(".post-list > .post-card").last()).toHaveCSS(
+    "border-bottom-width",
+    "0px",
+  );
 
   await page.goto("/en/posts/building-this-blog");
   await expect(page.getByRole("heading", { name: /building this blog/i })).toBeVisible();
@@ -31,7 +38,7 @@ test("renders localized core routes", async ({ page }) => {
 
   await page.goto("/zh");
   await expect(page).toHaveTitle("Junyu 的博客");
-  await expect(page.getByRole("heading", { name: /关于软件/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /关于构建/ })).toBeVisible();
 
   await page.goto("/zh/posts");
   await expect(page.getByRole("heading", { name: "文章" })).toBeVisible();
@@ -56,6 +63,54 @@ test("switches language through the header control", async ({ page }) => {
 
   await page.getByLabel("语言").getByRole("link", { name: "EN" }).click();
   await expect(page).toHaveURL(/\/en\/posts\/building-this-blog$/);
+});
+
+test("keeps homepage sections separate while scrolling", async ({ page }) => {
+  await page.goto("/en");
+  await page.locator(".latest-writing").scrollIntoViewIfNeeded();
+
+  const layout = await page.evaluate(() => {
+    const bars = document.querySelector<HTMLElement>(".hero-masthead-rule");
+    const deck = document.querySelector<HTMLElement>(".hero-deck");
+    const hero = document.querySelector<HTMLElement>(".hero-panel");
+    const lastCard = document.querySelector<HTMLElement>(
+      ".home-post-list .post-card:last-child",
+    );
+    const latestWriting = document.querySelector<HTMLElement>(".latest-writing");
+    const title = document.querySelector<HTMLElement>("#home-title");
+
+    if (!bars || !deck || !hero || !lastCard || !latestWriting || !title) {
+      throw new Error("Expected homepage sections were not rendered.");
+    }
+
+    const heroStyle = getComputedStyle(hero);
+    const titleStyle = getComputedStyle(title);
+
+    return {
+      borderBottomWidth: heroStyle.borderBottomWidth,
+      deckWidth: deck.getBoundingClientRect().width,
+      heroBottom: hero.getBoundingClientRect().bottom,
+      heroPosition: heroStyle.position,
+      lastCardBorderBottomWidth: getComputedStyle(lastCard).borderBottomWidth,
+      latestWritingTop: latestWriting.getBoundingClientRect().top,
+      sectionGap:
+        latestWriting.getBoundingClientRect().top - hero.getBoundingClientRect().bottom,
+      titleToBarsGap:
+        bars.getBoundingClientRect().top - title.getBoundingClientRect().bottom,
+      titleLineHeightRatio:
+        Number.parseFloat(titleStyle.lineHeight) /
+        Number.parseFloat(titleStyle.fontSize),
+    };
+  });
+
+  expect(layout.borderBottomWidth).toBe("0px");
+  expect(layout.deckWidth).toBeGreaterThan(280);
+  expect(layout.heroPosition).toBe("static");
+  expect(layout.lastCardBorderBottomWidth).toBe("0px");
+  expect(layout.heroBottom).toBeLessThanOrEqual(layout.latestWritingTop);
+  expect(layout.sectionGap).toBeGreaterThanOrEqual(47);
+  expect(layout.titleToBarsGap).toBeGreaterThanOrEqual(35);
+  expect(layout.titleLineHeightRatio).toBeGreaterThanOrEqual(1.07);
 });
 
 test("renders localized categories, tags, rss, sitemap, and legacy redirects", async ({ page }) => {

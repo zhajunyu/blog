@@ -39,6 +39,6 @@ Body.
     const feed = generateRssFeed([], "zh");
 
     expect(feed).toContain("<language>zh-CN</language>");
-    expect(feed).toContain("关于软件与系统的笔记");
+    expect(feed).toContain("关于构建、生活与想象的笔记");
   });
 });

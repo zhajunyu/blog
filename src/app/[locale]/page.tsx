@@ -46,23 +46,26 @@ export default async function HomePage({ params }: HomePageProps) {
   const latestPosts = posts.slice(0, 3);
 
   return (
-    <div className="home-grid">
+    <div className="home-layout">
       <section className="hero-panel" aria-labelledby="home-title">
         <h1 id="home-title" className="page-title">
           {dictionary.home.title}
         </h1>
-        <div className="hero-rule" aria-hidden="true" />
-        <p className="hero-note">{dictionary.home.note}</p>
+        <div className="hero-masthead-rule" aria-hidden="true">
+          <span className="hero-masthead-accent" />
+          <span className="hero-masthead-secondary" />
+        </div>
+        <p className="hero-deck">{dictionary.home.note}</p>
       </section>
 
-      <section aria-labelledby="latest-writing">
+      <section className="latest-writing" aria-labelledby="latest-writing">
         <div className="section-heading">
           <h2 id="latest-writing">{dictionary.home.latest}</h2>
           <Link href={localizedPath(rawLocale, "/posts")}>
             {dictionary.home.allPosts}
           </Link>
         </div>
-        <div className="post-list">
+        <div className="home-post-list">
           {latestPosts.map((post, index) => (
             <PostCard
               key={post.slug}
