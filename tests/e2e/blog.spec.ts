@@ -55,6 +55,23 @@ test("renders localized core routes", async ({ page }) => {
   );
 });
 
+test("renders MDX list markers and underlined links", async ({ page }) => {
+  await page.goto("/en/posts/surge-proxy-configuration");
+
+  await expect(page.locator(".article-body ol").first()).toHaveCSS(
+    "list-style-type",
+    "decimal",
+  );
+  await expect(page.locator(".article-body ul").first()).toHaveCSS(
+    "list-style-type",
+    "disc",
+  );
+  await expect(page.locator(".article-body a").first()).toHaveCSS(
+    "text-decoration-line",
+    "underline",
+  );
+});
+
 test("switches language through the header control", async ({ page }) => {
   await page.goto("/en/posts/building-this-blog");
   await page.getByLabel("Language").getByRole("link", { name: "中文" }).click();

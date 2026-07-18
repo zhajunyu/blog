@@ -669,9 +669,41 @@ a:hover {
   color: var(--color-body-copy);
 }
 
+.article-body a {
+  color: var(--color-accent-dark);
+  text-decoration-line: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 55%, transparent);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+  transition:
+    color 150ms ease,
+    text-decoration-color 150ms ease;
+}
+
+.article-body a:hover {
+  color: var(--color-accent);
+  text-decoration-color: currentColor;
+}
+
 .article-body ul,
 .article-body ol {
   padding-left: 1.35rem;
+}
+
+.article-body ul {
+  list-style-type: disc;
+}
+
+.article-body ol {
+  list-style-type: decimal;
+}
+
+.article-body ul ul {
+  list-style-type: circle;
+}
+
+.article-body ul ul ul {
+  list-style-type: square;
 }
 
 .article-body blockquote {
