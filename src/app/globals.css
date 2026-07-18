@@ -344,6 +344,10 @@ a:hover {
   animation-delay: 200ms;
 }
 
+.mobile-menu-panel a:nth-child(6) {
+  animation-delay: 230ms;
+}
+
 .mobile-menu-panel a + a {
   border-top: 1px solid var(--color-rule);
 }

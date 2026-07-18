@@ -19,6 +19,7 @@ export function SiteHeader({ locale, dictionary, availability }: SiteHeaderProps
     { href: localizedPath(locale, "/categories"), label: dictionary.nav.category },
     { href: localizedPath(locale, "/tags"), label: dictionary.nav.tags },
     { href: localizedPath(locale, "/projects"), label: dictionary.nav.projects },
+    { href: localizedPath(locale, "/rss.xml"), label: dictionary.nav.rss },
     { href: localizedPath(locale, "/about"), label: dictionary.nav.about },
   ] as const;
 

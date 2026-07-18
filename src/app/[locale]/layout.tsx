@@ -95,7 +95,7 @@ export default async function LocaleLayout({
             availability={availability}
           />
           <main className="site-main">{children}</main>
-          <SiteFooter locale={rawLocale} dictionary={dictionary} />
+          <SiteFooter />
         </div>
       </body>
     </html>

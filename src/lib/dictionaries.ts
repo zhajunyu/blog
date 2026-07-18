@@ -24,14 +24,12 @@ export interface Dictionary {
     category: string;
     tags: string;
     projects: string;
+    rss: string;
     about: string;
     language: string;
     switchLanguage: string;
     openMenu: string;
     closeMenu: string;
-  };
-  footer: {
-    rss: string;
   };
   home: {
     metadataTitle: string;
@@ -114,14 +112,12 @@ export const dictionaries: Record<Locale, Dictionary> = {
       category: "Categories",
       tags: "Tags",
       projects: "Projects",
+      rss: "RSS",
       about: "About",
       language: "Language",
       switchLanguage: "Switch to Chinese",
       openMenu: "Open navigation",
       closeMenu: "Close navigation",
-    },
-    footer: {
-      rss: "RSS",
     },
     home: {
       metadataTitle: "Junyu's Blog",
@@ -229,14 +225,12 @@ export const dictionaries: Record<Locale, Dictionary> = {
       category: "分类",
       tags: "标签",
       projects: "项目",
+      rss: "RSS",
       about: "关于",
       language: "语言",
       switchLanguage: "切换到英文",
       openMenu: "打开导航",
       closeMenu: "关闭导航",
-    },
-    footer: {
-      rss: "RSS",
     },
     home: {
       metadataTitle: "Junyu 的博客",
