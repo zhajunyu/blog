@@ -9,7 +9,7 @@ export type TagId =
   | "surge"
   | "proxy"
   | "networking";
-export type CategoryId = "tech" | "essays" | "fictions";
+export type CategoryId = "tech" | "essays" | "fiction";
 
 export interface Dictionary {
   site: {
@@ -146,7 +146,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       postCount: (count) => `${count} ${count === 1 ? "post" : "posts"} filed under this topic.`,
     },
     categories: {
-      order: ["tech", "essays", "fictions"],
+      order: ["tech", "essays", "fiction"],
       metadataTitle: "Categories",
       metadataDescription: "Browse writing by category.",
       title: "Categories",
@@ -210,12 +210,12 @@ export const dictionaries: Record<Locale, Dictionary> = {
     categoryLabels: {
       tech: "Tech",
       essays: "Essays",
-      fictions: "Fictions",
+      fiction: "Fiction",
     },
     categoryDescriptions: {
       tech: "Engineering notes on building clear interfaces, dependable systems, and software that remains understandable over time.",
       essays: "Reflective writing on places, memory, ideas, and everyday life.",
-      fictions: "Long-form fiction and stories.",
+      fiction: "Long-form fiction and stories.",
     },
   },
   zh: {
@@ -262,7 +262,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       postCount: (count) => `${count} 篇文章属于这个主题。`,
     },
     categories: {
-      order: ["tech", "essays", "fictions"],
+      order: ["tech", "essays", "fiction"],
       metadataTitle: "分类",
       metadataDescription: "按分类浏览文章。",
       title: "分类",
@@ -326,12 +326,12 @@ export const dictionaries: Record<Locale, Dictionary> = {
     categoryLabels: {
       tech: "科技",
       essays: "随笔",
-      fictions: "小说",
+      fiction: "小说",
     },
     categoryDescriptions: {
       tech: "关于构建清晰界面、可靠系统，以及长期保持可理解的软件的工程笔记。",
       essays: "关于地方、记忆、想法与日常生活的思考性写作。",
-      fictions: "长篇小说与故事。",
+      fiction: "长篇小说与故事。",
     },
   },
 };
