@@ -145,7 +145,7 @@ test("switches language through the header control", async ({ page }) => {
   await expect(englishLanguageToggle.locator("svg")).toHaveClass(/lucide-languages/);
   await expect(englishLanguageToggle.locator("svg")).toHaveCSS(
     "transform",
-    "matrix(1, 0, 0, 1, 8, 0)",
+    "none",
   );
   await expect(englishLanguageToggle).toHaveCSS("border-top-width", "0px");
   await englishLanguageToggle.click();
@@ -161,6 +161,143 @@ test("switches language through the header control", async ({ page }) => {
   await expect(page).toHaveURL(/\/en\/posts\/building-this-blog$/);
 });
 
+test("serves locale-isolated static search indexes", async ({ request }) => {
+  const [englishResponse, chineseResponse] = await Promise.all([
+    request.get("/en/search-index.json"),
+    request.get("/zh/search-index.json"),
+  ]);
+
+  expect(englishResponse.ok()).toBe(true);
+  expect(chineseResponse.ok()).toBe(true);
+
+  const englishIndex = (await englishResponse.json()) as {
+    locale: string;
+    posts: Array<{ href: string; title: string; content: string }>;
+  };
+  const chineseIndex = (await chineseResponse.json()) as {
+    locale: string;
+    posts: Array<{ href: string; title: string; content: string }>;
+  };
+
+  expect(englishIndex.locale).toBe("en");
+  expect(englishIndex.posts.length).toBeGreaterThan(0);
+  expect(englishIndex.posts.every((post) => post.href.startsWith("/en/posts/"))).toBe(
+    true,
+  );
+  expect(englishIndex.posts.some((post) => post.title === "Building This Blog")).toBe(
+    true,
+  );
+  expect(englishIndex.posts.some((post) => post.title === "构建这个博客")).toBe(false);
+  expect(englishIndex.posts.find((post) => post.title === "Building This Blog")?.content).toContain(
+    "static-first",
+  );
+
+  expect(chineseIndex.locale).toBe("zh");
+  expect(chineseIndex.posts.length).toBeGreaterThan(0);
+  expect(chineseIndex.posts.every((post) => post.href.startsWith("/zh/posts/"))).toBe(
+    true,
+  );
+  expect(chineseIndex.posts.some((post) => post.title === "构建这个博客")).toBe(true);
+  expect(chineseIndex.posts.some((post) => post.title === "Building This Blog")).toBe(
+    false,
+  );
+});
+
+test("searches the current locale through an accessible command palette", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/en");
+
+  const searchTrigger = page.getByRole("button", { name: "Search posts" });
+  const languageToggle = page
+    .getByLabel("Language")
+    .getByRole("link", { name: "Switch to Chinese" });
+  const [searchBox, languageBox] = await Promise.all([
+    searchTrigger.boundingBox(),
+    languageToggle.boundingBox(),
+  ]);
+
+  expect(searchBox).not.toBeNull();
+  expect(languageBox).not.toBeNull();
+  expect(searchBox!.x).toBeLessThan(languageBox!.x);
+  await expect(searchTrigger.locator("svg")).toHaveClass(/lucide-search/);
+
+  await searchTrigger.click();
+  const dialog = page.getByRole("dialog", { name: "Search the archive" });
+  const input = page.getByRole("combobox", { name: "Search English posts" });
+
+  await expect(dialog).toBeVisible();
+  await expect(input).toBeFocused();
+  await expect(dialog).toContainText("Type a word or phrase to search English posts.");
+
+  await input.fill("writing");
+  const resultList = page.getByRole("listbox", { name: "English search results" });
+  await expect(resultList).toBeVisible();
+  expect(await resultList.getByRole("option").count()).toBeGreaterThan(1);
+  await expect(resultList.getByRole("option").first()).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await input.press("ArrowDown");
+  await expect(resultList.getByRole("option").nth(1)).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+
+  await input.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(searchTrigger).toBeFocused();
+
+  await page.keyboard.press("Control+k");
+  await expect(dialog).toBeVisible();
+  await expect(input).toBeFocused();
+  await input.fill("构建这个博客");
+  await expect(dialog).toContainText("No English posts found");
+
+  await input.fill("static-first");
+  const buildingResult = resultList.getByRole("option", {
+    name: /building this blog/i,
+  });
+  await expect(buildingResult).toBeVisible();
+  await expect(buildingResult.locator("mark").first()).toContainText(/static-first/i);
+  await input.press("Enter");
+  await expect(page).toHaveURL(/\/en\/posts\/building-this-blog$/);
+
+  await page.goto("/zh");
+  await page.getByRole("button", { name: "搜索文章" }).click();
+  const chineseDialog = page.getByRole("dialog", { name: "搜索文章归档" });
+  const chineseInput = page.getByRole("combobox", { name: "搜索中文文章" });
+
+  await chineseInput.fill("静态优先");
+  await expect(
+    chineseDialog.getByRole("option", { name: /构建这个博客/ }),
+  ).toBeVisible();
+  await expect(chineseDialog).not.toContainText("Building This Blog");
+});
+
+test("retries a failed lazy search-index request", async ({ page }) => {
+  let attempts = 0;
+
+  await page.route("**/en/search-index.json", async (route) => {
+    attempts += 1;
+
+    if (attempts === 1) {
+      await route.abort();
+      return;
+    }
+
+    await route.continue();
+  });
+  await page.goto("/en");
+  await page.getByRole("button", { name: "Search posts" }).click();
+  const dialog = page.getByRole("dialog", { name: "Search the archive" });
+
+  await expect(dialog).toContainText("Search is temporarily unavailable.");
+  await dialog.getByRole("button", { name: "Try again" }).click();
+  await dialog.getByRole("combobox", { name: "Search English posts" }).fill("blog");
+  await expect(dialog.getByRole("option", { name: /building this blog/i })).toBeVisible();
+  expect(attempts).toBe(2);
+});
+
 test("uses an accessible menu on narrow screens", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/en");
@@ -168,6 +305,7 @@ test("uses an accessible menu on narrow screens", async ({ page }, testInfo) => 
   const logo = page.getByRole("link", { name: "Home" });
   const languageSwitcher = page.getByLabel("Language");
   const languageToggle = languageSwitcher.getByRole("link", { name: "Switch to Chinese" });
+  const searchTrigger = page.getByRole("button", { name: "Search posts" });
   const headerActions = page.locator(".site-header-actions");
   const menuButton = page.locator(".mobile-menu-toggle");
   const menuIcon = menuButton.locator(".lucide-menu");
@@ -182,9 +320,12 @@ test("uses an accessible menu on narrow screens", async ({ page }, testInfo) => 
   await expect(languageToggle.locator("svg")).toHaveClass(/lucide-languages/);
   await expect(languageToggle.locator("svg")).toHaveCSS(
     "transform",
-    "matrix(1, 0, 0, 1, 10, 0)",
+    "none",
   );
   await expect(languageToggle).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(searchTrigger).toBeVisible();
+  await expect(searchTrigger).toHaveCSS("width", "44px");
+  await expect(searchTrigger.locator("svg")).toHaveClass(/lucide-search/);
   await expect(headerActions).toHaveCSS("column-gap", "4px");
   await expect(menuButton).toHaveAccessibleName("Open navigation");
   await expect(menuButton).toHaveCSS("border-top-width", "0px");
@@ -207,13 +348,15 @@ test("uses an accessible menu on narrow screens", async ({ page }, testInfo) => 
   );
   await expect(page.getByLabel("Primary navigation").first()).toBeHidden();
 
-  const [logoBox, languageBox, menuButtonBox] = await Promise.all([
+  const [logoBox, searchTriggerBox, languageBox, menuButtonBox] = await Promise.all([
     logo.boundingBox(),
+    searchTrigger.boundingBox(),
     languageSwitcher.boundingBox(),
     menuButton.boundingBox(),
   ]);
 
   expect(logoBox).not.toBeNull();
+  expect(searchTriggerBox).not.toBeNull();
   expect(languageBox).not.toBeNull();
   expect(menuButtonBox).not.toBeNull();
   const logoCenter = logoBox!.y + logoBox!.height / 2;
@@ -221,8 +364,12 @@ test("uses an accessible menu on narrow screens", async ({ page }, testInfo) => 
   const menuButtonCenter = menuButtonBox!.y + menuButtonBox!.height / 2;
 
   expect(logoBox!.height).toBe(44);
+  expect(searchTriggerBox!.height).toBe(44);
   expect(languageBox!.height).toBe(44);
   expect(menuButtonBox!.height).toBe(44);
+  expect(searchTriggerBox!.x).toBeLessThan(languageBox!.x);
+  expect(languageBox!.x).toBeLessThan(menuButtonBox!.x);
+  expect(Math.abs(logoCenter - (searchTriggerBox!.y + searchTriggerBox!.height / 2))).toBeLessThanOrEqual(1);
   expect(Math.abs(logoCenter - languageCenter)).toBeLessThanOrEqual(1);
   expect(Math.abs(logoCenter - menuButtonCenter)).toBeLessThanOrEqual(1);
 
@@ -235,6 +382,26 @@ test("uses an accessible menu on narrow screens", async ({ page }, testInfo) => 
 
   expect(headerRight - menuPathRight).toBeGreaterThanOrEqual(5);
   expect(headerRight - menuPathRight).toBeLessThanOrEqual(7);
+
+  await searchTrigger.click();
+  const searchDialog = page.getByRole("dialog", { name: "Search the archive" });
+  const searchDialogBox = await searchDialog.boundingBox();
+
+  await expect(searchDialog).toBeVisible();
+  expect(searchDialogBox).not.toBeNull();
+  expect(searchDialogBox!.width).toBeLessThanOrEqual(362);
+  await searchDialog.getByRole("button", { name: "Close search" }).click();
+  await expect(searchDialog).toHaveAttribute("data-closing", "true");
+  await expect(searchDialog.locator(".search-dialog-panel")).toHaveCSS(
+    "animation-name",
+    "search-dialog-exit",
+  );
+  expect(
+    await searchDialog.evaluate(
+      (dialog) => getComputedStyle(dialog, "::backdrop").animationName,
+    ),
+  ).toBe("search-backdrop-exit, search-backdrop-gradient-exit");
+  await expect(searchDialog).toBeHidden();
 
   const menuIconBox = await menuIcon.boundingBox();
 
@@ -387,6 +554,12 @@ test.describe("system color scheme", () => {
       await expect(page.getByRole("heading", { name: /building this blog/i })).toBeVisible();
       await expect(page.locator(".mdx-callout")).toContainText("Design choice");
       await expect(page.locator(".article-body pre")).toContainText("PostFrontmatter");
+      await page.getByRole("button", { name: "Search posts" }).click();
+      await expect(page.getByRole("dialog", { name: "Search the archive" })).toBeVisible();
+      await expect(page.locator(".search-dialog-panel")).not.toHaveCSS(
+        "background-color",
+        "rgba(0, 0, 0, 0)",
+      );
 
       const expectedPalette =
         colorScheme === "dark"

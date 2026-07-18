@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { MobileNavigation } from "@/components/mobile-navigation";
+import { SearchDialog } from "@/components/search-dialog";
 import type { Dictionary } from "@/lib/dictionaries";
 import type { LocaleAvailability } from "@/lib/language-switch";
 import type { Locale } from "@/lib/i18n";
@@ -36,18 +37,21 @@ export function SiteHeader({ locale, dictionary, availability }: SiteHeaderProps
             </Link>
           ))}
         </nav>
-        <LanguageSwitcher
-          activeLocale={locale}
-          ariaLabel={dictionary.nav.language}
-          availability={availability}
-          switchLabel={dictionary.nav.switchLanguage}
-        />
-        <MobileNavigation
-          ariaLabel={dictionary.nav.primary}
-          closeLabel={dictionary.nav.closeMenu}
-          items={navItems}
-          openLabel={dictionary.nav.openMenu}
-        />
+        <div className="site-header-utilities">
+          <SearchDialog locale={locale} messages={dictionary.search} />
+          <LanguageSwitcher
+            activeLocale={locale}
+            ariaLabel={dictionary.nav.language}
+            availability={availability}
+            switchLabel={dictionary.nav.switchLanguage}
+          />
+          <MobileNavigation
+            ariaLabel={dictionary.nav.primary}
+            closeLabel={dictionary.nav.closeMenu}
+            items={navItems}
+            openLabel={dictionary.nav.openMenu}
+          />
+        </div>
       </div>
     </header>
   );

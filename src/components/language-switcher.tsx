@@ -26,6 +26,7 @@ export function LanguageSwitcher({
   return (
     <nav className="language-switcher" aria-label={ariaLabel}>
       <Link
+        className="header-icon-control"
         href={getLanguageSwitchHref(pathname, targetLocale, availability)}
         aria-label={switchLabel}
       >

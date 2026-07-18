@@ -29,6 +29,17 @@ pnpm e2e
 
 The site follows the visitor's system color-scheme preference. There is no manual light/dark toggle.
 
+## Search
+
+Use the search icon in the header or press `Cmd+K` / `Ctrl+K` to open the
+search overlay. Search is restricted to the active locale: English pages search
+only English posts, and Chinese pages search only Chinese posts. Titles,
+descriptions, categories, tags, and post bodies are searchable.
+
+The overlay lazily fetches a static locale-specific index from
+`/{locale}/search-index.json`, so post bodies are not included in ordinary page
+responses. The indexes are regenerated during the normal production build.
+
 ## Routes
 
 Every public page is locale-prefixed:

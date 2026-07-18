@@ -31,6 +31,21 @@ export interface Dictionary {
     openMenu: string;
     closeMenu: string;
   };
+  search: {
+    openLabel: string;
+    closeLabel: string;
+    title: string;
+    inputLabel: string;
+    placeholder: string;
+    shortcut: string;
+    prompt: string;
+    loading: string;
+    error: string;
+    retry: string;
+    noResults: string;
+    resultCount: string;
+    resultListLabel: string;
+  };
   home: {
     metadataTitle: string;
     title: string;
@@ -108,6 +123,21 @@ export const dictionaries: Record<Locale, Dictionary> = {
       switchLanguage: "Switch to Chinese",
       openMenu: "Open navigation",
       closeMenu: "Close navigation",
+    },
+    search: {
+      openLabel: "Search posts",
+      closeLabel: "Close search",
+      title: "Search the archive",
+      inputLabel: "Search English posts",
+      placeholder: "Search titles, topics, and passages…",
+      shortcut: "⌘K / Ctrl K",
+      prompt: "Type a word or phrase to search English posts.",
+      loading: "Loading the English search index…",
+      error: "Search is temporarily unavailable.",
+      retry: "Try again",
+      noResults: "No English posts found for “{query}”.",
+      resultCount: "{count} matching posts",
+      resultListLabel: "English search results",
     },
     home: {
       metadataTitle: "Junyu's Blog",
@@ -203,6 +233,21 @@ export const dictionaries: Record<Locale, Dictionary> = {
       switchLanguage: "切换到英文",
       openMenu: "打开导航",
       closeMenu: "关闭导航",
+    },
+    search: {
+      openLabel: "搜索文章",
+      closeLabel: "关闭搜索",
+      title: "搜索文章归档",
+      inputLabel: "搜索中文文章",
+      placeholder: "搜索标题、主题和正文…",
+      shortcut: "⌘K / Ctrl K",
+      prompt: "输入关键词或短语，搜索中文文章。",
+      loading: "正在加载中文搜索索引…",
+      error: "搜索暂时不可用。",
+      retry: "重试",
+      noResults: "没有找到与“{query}”匹配的中文文章。",
+      resultCount: "找到 {count} 篇文章",
+      resultListLabel: "中文搜索结果",
     },
     home: {
       metadataTitle: "Junyu 的博客",
