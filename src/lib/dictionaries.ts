@@ -25,6 +25,8 @@ export interface Dictionary {
     projects: string;
     about: string;
     language: string;
+    openMenu: string;
+    closeMenu: string;
   };
   footer: {
     rss: string;
@@ -112,6 +114,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
       projects: "Projects",
       about: "About",
       language: "Language",
+      openMenu: "Open navigation",
+      closeMenu: "Close navigation",
     },
     footer: {
       rss: "RSS",
@@ -224,6 +228,8 @@ export const dictionaries: Record<Locale, Dictionary> = {
       projects: "项目",
       about: "关于",
       language: "语言",
+      openMenu: "打开导航",
+      closeMenu: "关闭导航",
     },
     footer: {
       rss: "RSS",

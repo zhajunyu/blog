@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { MobileNavigation } from "@/components/mobile-navigation";
 import type { Dictionary } from "@/lib/dictionaries";
 import type { LocaleAvailability } from "@/lib/language-switch";
 import type { Locale } from "@/lib/i18n";
@@ -38,6 +39,12 @@ export function SiteHeader({ locale, dictionary, availability }: SiteHeaderProps
           activeLocale={locale}
           ariaLabel={dictionary.nav.language}
           availability={availability}
+        />
+        <MobileNavigation
+          ariaLabel={dictionary.nav.primary}
+          closeLabel={dictionary.nav.closeMenu}
+          items={navItems}
+          openLabel={dictionary.nav.openMenu}
         />
       </div>
     </header>

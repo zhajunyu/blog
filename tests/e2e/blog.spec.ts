@@ -17,11 +17,20 @@ test("renders localized core routes", async ({ page }) => {
   await expect(page.locator(".hero-deck")).toContainText(
     "Technical writing, essays, and fiction",
   );
+
+  const mobileMenuButton = page.getByRole("button", { name: "Open navigation" });
+  let primaryNavigation = page.getByLabel("Primary navigation").first();
+
+  if (await mobileMenuButton.isVisible()) {
+    await mobileMenuButton.click();
+    primaryNavigation = page.getByLabel("Primary navigation").last();
+  }
+
   await expect(
-    page.getByLabel("Primary navigation").getByRole("link", { name: "Posts" }),
+    primaryNavigation.getByRole("link", { name: "Posts" }),
   ).toBeVisible();
   await expect(
-    page.getByLabel("Primary navigation").getByRole("link", { name: "Categories" }),
+    primaryNavigation.getByRole("link", { name: "Categories" }),
   ).toBeVisible();
 
   await page.goto("/en/posts");
@@ -115,6 +124,63 @@ test("switches language through the header control", async ({ page }) => {
 
   await page.getByLabel("语言").getByRole("link", { name: "EN" }).click();
   await expect(page).toHaveURL(/\/en\/posts\/building-this-blog$/);
+});
+
+test("uses an accessible menu on narrow screens", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/en");
+
+  const logo = page.getByRole("link", { name: "Home" });
+  const languageSwitcher = page.getByLabel("Language");
+  const menuButton = page.locator(".mobile-menu-toggle");
+
+  await expect(logo).toBeVisible();
+  await expect(languageSwitcher).toBeVisible();
+  await expect(menuButton).toHaveAccessibleName("Open navigation");
+  await expect(page.getByLabel("Primary navigation").first()).toBeHidden();
+
+  const [logoBox, languageBox, menuButtonBox] = await Promise.all([
+    logo.boundingBox(),
+    languageSwitcher.boundingBox(),
+    menuButton.boundingBox(),
+  ]);
+
+  expect(logoBox).not.toBeNull();
+  expect(languageBox).not.toBeNull();
+  expect(menuButtonBox).not.toBeNull();
+  const logoCenter = logoBox!.y + logoBox!.height / 2;
+  const languageCenter = languageBox!.y + languageBox!.height / 2;
+  const menuButtonCenter = menuButtonBox!.y + menuButtonBox!.height / 2;
+
+  expect(Math.abs(logoCenter - languageCenter)).toBeLessThanOrEqual(1);
+  expect(Math.abs(logoCenter - menuButtonCenter)).toBeLessThanOrEqual(1);
+
+  await menuButton.click();
+  await expect(menuButton).toHaveAttribute("aria-expanded", "true");
+  await expect(page.getByRole("button", { name: "Close navigation" })).toBeVisible();
+  const backdrop = page.locator(".mobile-menu-backdrop");
+  await expect(backdrop).toHaveCSS("backdrop-filter", "blur(6px)");
+  await expect(backdrop).toHaveCSS(
+    "animation-name",
+    "mobile-backdrop-enter, mobile-backdrop-gradient",
+  );
+
+  const mobileNavigation = page.getByLabel("Primary navigation").last();
+  await expect(mobileNavigation).toBeVisible();
+  await expect(mobileNavigation).toHaveCSS("border-right-width", "2px");
+  await expect(mobileNavigation).not.toHaveCSS("box-shadow", "none");
+  await expect(mobileNavigation).toHaveCSS(
+    "animation-name",
+    "mobile-menu-panel-enter",
+  );
+  await mobileNavigation.getByRole("link", { name: "Posts" }).click();
+
+  await expect(page).toHaveURL(/\/en\/posts$/);
+  await expect(page.getByRole("button", { name: "Open navigation" })).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await expect(page.locator(".mobile-menu-backdrop")).toHaveCount(0);
 });
 
 test("keeps homepage sections separate while scrolling", async ({ page }) => {
