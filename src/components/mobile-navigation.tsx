@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Menu, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface NavigationItem {
@@ -56,9 +57,19 @@ export function MobileNavigation({
         aria-label={activeLabel}
         onClick={() => setIsOpen((open) => !open)}
       >
-        <span className="mobile-menu-icon" aria-hidden="true">
-          <span />
-          <span />
+        <span className="mobile-menu-icon-stack" aria-hidden="true">
+          <Menu
+            className="mobile-menu-icon mobile-menu-icon-open"
+            size={23}
+            stroke="currentColor"
+            strokeWidth={1.8}
+          />
+          <X
+            className="mobile-menu-icon mobile-menu-icon-close"
+            size={23}
+            stroke="currentColor"
+            strokeWidth={1.8}
+          />
         </span>
       </button>
       <nav

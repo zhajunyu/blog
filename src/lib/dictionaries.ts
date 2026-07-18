@@ -17,6 +17,7 @@ export interface Dictionary {
     description: string;
   };
   nav: {
+    brand: string;
     homeAria: string;
     primary: string;
     posts: string;
@@ -25,6 +26,7 @@ export interface Dictionary {
     projects: string;
     about: string;
     language: string;
+    switchLanguage: string;
     openMenu: string;
     closeMenu: string;
   };
@@ -106,6 +108,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
         "Technical writing, essays, and fiction about the systems we build, the lives around them, and the worlds we imagine.",
     },
     nav: {
+      brand: "Junyu's Blog",
       homeAria: "Home",
       primary: "Primary navigation",
       posts: "Posts",
@@ -114,6 +117,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       projects: "Projects",
       about: "About",
       language: "Language",
+      switchLanguage: "Switch to Chinese",
       openMenu: "Open navigation",
       closeMenu: "Close navigation",
     },
@@ -220,6 +224,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       description: "关于技术、生活与虚构的文章：记录我们构建的系统、身处的生活，以及想象出的世界。",
     },
     nav: {
+      brand: "Junyu 的博客",
       homeAria: "首页",
       primary: "主导航",
       posts: "文章",
@@ -228,6 +233,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       projects: "项目",
       about: "关于",
       language: "语言",
+      switchLanguage: "切换到英文",
       openMenu: "打开导航",
       closeMenu: "关闭导航",
     },

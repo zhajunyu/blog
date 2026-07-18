@@ -13,6 +13,9 @@ test("renders localized core routes", async ({ page }) => {
   await page.goto("/");
   await expect(page).toHaveURL(/\/en$/);
   await expect(page).toHaveTitle("Junyu's Blog");
+  const englishLogo = page.getByRole("link", { name: "Home" });
+  await expect(englishLogo).toHaveText("Junyu's Blog");
+  await expect(englishLogo).toHaveAttribute("href", "/en");
   await expect(page.getByRole("heading", { name: /notes on making/i })).toBeVisible();
   await expect(page.locator(".hero-deck")).toContainText(
     "Technical writing, essays, and fiction",
@@ -44,9 +47,14 @@ test("renders localized core routes", async ({ page }) => {
   await page.goto("/en/posts/building-this-blog");
   await expect(page.getByRole("heading", { name: /building this blog/i })).toBeVisible();
   await expect(page.locator("article")).toContainText("static-first");
+  await page.getByRole("link", { name: "Home" }).click();
+  await expect(page).toHaveURL(/\/en$/);
 
   await page.goto("/zh");
   await expect(page).toHaveTitle("Junyu 的博客");
+  const chineseLogo = page.getByRole("link", { name: "首页" });
+  await expect(chineseLogo).toHaveText("Junyu 的博客");
+  await expect(chineseLogo).toHaveAttribute("href", "/zh");
   await expect(page.getByRole("heading", { name: /关于构建/ })).toBeVisible();
 
   await page.goto("/zh/posts");
@@ -117,26 +125,75 @@ test("highlights fenced code by language and preserves plain text", async ({ pag
 });
 
 test("switches language through the header control", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/en/posts/building-this-blog");
-  await page.getByLabel("Language").getByRole("link", { name: "中文" }).click();
+  const englishLanguageToggle = page
+    .getByLabel("Language")
+    .getByRole("link", { name: "Switch to Chinese" });
+
+  await expect(englishLanguageToggle.locator("svg")).toHaveClass(/lucide-languages/);
+  await expect(englishLanguageToggle.locator("svg")).toHaveCSS(
+    "transform",
+    "matrix(1, 0, 0, 1, 8, 0)",
+  );
+  await expect(englishLanguageToggle).toHaveCSS("border-top-width", "0px");
+  await englishLanguageToggle.click();
   await expect(page).toHaveURL(/\/zh\/posts\/building-this-blog$/);
   await expect(page.getByRole("heading", { name: /构建这个博客/ })).toBeVisible();
 
-  await page.getByLabel("语言").getByRole("link", { name: "EN" }).click();
+  const chineseLanguageToggle = page
+    .getByLabel("语言")
+    .getByRole("link", { name: "切换到英文" });
+
+  await expect(chineseLanguageToggle.locator("svg")).toHaveClass(/lucide-languages/);
+  await chineseLanguageToggle.click();
   await expect(page).toHaveURL(/\/en\/posts\/building-this-blog$/);
 });
 
-test("uses an accessible menu on narrow screens", async ({ page }) => {
+test("uses an accessible menu on narrow screens", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/en");
 
   const logo = page.getByRole("link", { name: "Home" });
   const languageSwitcher = page.getByLabel("Language");
+  const languageToggle = languageSwitcher.getByRole("link", { name: "Switch to Chinese" });
+  const headerActions = page.locator(".site-header-actions");
   const menuButton = page.locator(".mobile-menu-toggle");
+  const menuIcon = menuButton.locator(".lucide-menu");
+  const closeIcon = menuButton.locator(".lucide-x");
 
   await expect(logo).toBeVisible();
+  await expect(logo).toHaveCSS("font-size", "22px");
+  await expect(logo).toHaveCSS("padding-left", "6px");
+  await expect(logo).toHaveCSS("border-top-width", "0px");
+  await expect(logo).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(languageSwitcher).toBeVisible();
+  await expect(languageToggle.locator("svg")).toHaveClass(/lucide-languages/);
+  await expect(languageToggle.locator("svg")).toHaveCSS(
+    "transform",
+    "matrix(1, 0, 0, 1, 10, 0)",
+  );
+  await expect(languageToggle).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(headerActions).toHaveCSS("column-gap", "4px");
   await expect(menuButton).toHaveAccessibleName("Open navigation");
+  await expect(menuButton).toHaveCSS("border-top-width", "0px");
+  await expect(menuButton).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(menuButton).toHaveCSS("touch-action", "manipulation");
+  await expect(menuIcon).toHaveCount(1);
+  await expect(closeIcon).toHaveCount(1);
+  await expect(menuIcon).toHaveCSS("opacity", "1");
+  await expect(closeIcon).toHaveCSS("opacity", "0");
+  await expect(menuIcon).toHaveAttribute("stroke", "currentColor");
+  await expect(closeIcon).toHaveAttribute("stroke", "currentColor");
+  await expect(menuIcon).toHaveCSS("color", "rgb(0, 0, 0)");
+  await expect(menuButton.locator(".mobile-menu-icon-stack")).toHaveCSS(
+    "transform",
+    "matrix(1, 0, 0, 1, 8, 0)",
+  );
+  await expect(menuButton.locator(".mobile-menu-icon-stack")).toHaveCSS(
+    "pointer-events",
+    "none",
+  );
   await expect(page.getByLabel("Primary navigation").first()).toBeHidden();
 
   const [logoBox, languageBox, menuButtonBox] = await Promise.all([
@@ -152,12 +209,47 @@ test("uses an accessible menu on narrow screens", async ({ page }) => {
   const languageCenter = languageBox!.y + languageBox!.height / 2;
   const menuButtonCenter = menuButtonBox!.y + menuButtonBox!.height / 2;
 
+  expect(logoBox!.height).toBe(44);
+  expect(languageBox!.height).toBe(44);
+  expect(menuButtonBox!.height).toBe(44);
   expect(Math.abs(logoCenter - languageCenter)).toBeLessThanOrEqual(1);
   expect(Math.abs(logoCenter - menuButtonCenter)).toBeLessThanOrEqual(1);
 
-  await menuButton.click();
+  const headerRight = await page
+    .locator(".site-header")
+    .evaluate((header) => header.getBoundingClientRect().right);
+  const menuPathRight = await menuIcon.locator("path").evaluateAll((paths) =>
+    Math.max(...paths.map((path) => path.getBoundingClientRect().right)),
+  );
+
+  expect(headerRight - menuPathRight).toBeGreaterThanOrEqual(5);
+  expect(headerRight - menuPathRight).toBeLessThanOrEqual(7);
+
+  const menuIconBox = await menuIcon.boundingBox();
+
+  expect(menuIconBox).not.toBeNull();
+  const menuIconCenter = {
+    x: menuIconBox!.x + menuIconBox!.width / 2,
+    y: menuIconBox!.y + menuIconBox!.height / 2,
+  };
+
+  if (testInfo.project.name === "mobile") {
+    await page.touchscreen.tap(menuIconCenter.x, menuIconCenter.y);
+  } else {
+    await page.mouse.click(menuIconCenter.x, menuIconCenter.y);
+  }
   await expect(menuButton).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByRole("button", { name: "Close navigation" })).toBeVisible();
+  await expect(menuIcon).toHaveCSS("opacity", "0");
+  await expect(closeIcon).toHaveCSS("opacity", "1");
+  await expect(closeIcon).toHaveCSS("color", "rgb(0, 0, 0)");
+  await expect(closeIcon).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
+  const closePathRight = await closeIcon.locator("path").evaluateAll((paths) =>
+    Math.max(...paths.map((path) => path.getBoundingClientRect().right)),
+  );
+
+  expect(headerRight - closePathRight).toBeGreaterThanOrEqual(5);
+  expect(headerRight - closePathRight).toBeLessThanOrEqual(7);
   const backdrop = page.locator(".mobile-menu-backdrop");
   await expect(backdrop).toHaveCSS("backdrop-filter", "blur(6px)");
   await expect(backdrop).toHaveCSS(

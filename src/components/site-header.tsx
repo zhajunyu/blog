@@ -25,7 +25,7 @@ export function SiteHeader({ locale, dictionary, availability }: SiteHeaderProps
   return (
     <header className="site-header">
       <Link className="site-mark" href={localizedPath(locale)} aria-label={dictionary.nav.homeAria}>
-        JZ
+        {dictionary.nav.brand}
       </Link>
       <div className="site-header-actions">
         <nav className="site-nav" aria-label={dictionary.nav.primary}>
@@ -39,6 +39,7 @@ export function SiteHeader({ locale, dictionary, availability }: SiteHeaderProps
           activeLocale={locale}
           ariaLabel={dictionary.nav.language}
           availability={availability}
+          switchLabel={dictionary.nav.switchLanguage}
         />
         <MobileNavigation
           ariaLabel={dictionary.nav.primary}
