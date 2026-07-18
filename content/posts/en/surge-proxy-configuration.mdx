@@ -1,0 +1,276 @@
+---
+title: "Surge Proxy Configuration"
+description: "A practical breakdown of DNS, remote proxies, policy groups, and traffic rules in a Surge profile, with a sanitized template, verification steps, and security guidance."
+date: "2026-07-17"
+updated: "2026-07-18"
+category: "tech"
+tags: ["surge", "proxy", "networking"]
+---
+
+A Surge profile decides more than which websites use a proxy. It answers three connected questions: how a request is captured, where the available outbound routes come from, and which route each request ultimately uses.
+
+<Callout title="Protect the subscription URL">
+`<subscription-url>` is usually more than an ordinary download link. Anyone who obtains it may be able to read your proxy list or consume traffic from your plan. Do not commit the original profile to a public repository, share it in screenshots, or paste it into a public issue. If the URL has leaked, reset it in your provider's control panel.
+</Callout>
+
+## Proxy data flow
+
+This profile does not define proxies statically in `[Proxy]`. Instead, it imports them from a remote subscription and organizes them into regional policy groups:
+
+```text
+Remote subscription
+  ├─ Hong Kong proxies  -> HK ─┐
+  ├─ Taiwan proxies     -> TW  │
+  ├─ Singapore proxies  -> SG  ├─ Proxy ─┐
+  ├─ Japan proxies      -> JP  │         ├─ Missing
+  └─ US proxies         -> US ─┘ DIRECT ─┘
+
+Request -> Custom rules -> Service rule sets -> China rules -> GEOIP -> FINAL
+```
+
+`HK`, `TW`, `SG`, `JP`, and `US` are regional policy groups. `Proxy` is their shared entry point, while `Missing` handles requests that none of the preceding rules match. The rule layer only needs to refer to `Proxy`, `DIRECT`, and `Missing`; it does not need to know the protocol or address of any individual proxy.
+
+The subscription supplies proxies, policy groups organize outbound routes, and rules express routing intent. Replacing a subscription or its proxies therefore usually does not require rewriting the entire rule set.
+
+## `[General]`: capture, DNS, and testing
+
+The general portion of the profile can be summarized as follows:
+
+```ini
+[General]
+loglevel = notify
+dns-server = system, 114.114.114.114, 223.5.5.5
+skip-proxy = 127.0.0.1, 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12, \
+  100.64.0.0/10, 17.0.0.0/8, localhost, *.local, *.crashlytics.com
+exclude-simple-hostnames = true
+ipv6 = true
+internet-test-url = https://example.com/connectivity-check
+proxy-test-url = https://example.com/connectivity-check
+test-timeout = 3
+```
+
+### Choosing DNS servers
+
+`dns-server` combines the system resolver with `114.114.114.114` and `223.5.5.5`. This favors compatibility: local services and domains hosted in mainland China are more likely to receive answers appropriate for the current network.
+
+It does not mean that all DNS traffic goes through the proxy, nor does it provide the privacy properties of encrypted DNS. On an untrusted network, or when consistent encrypted resolution is required, evaluate `encrypted-dns-server` for the actual network environment. Do not replace resolvers merely because a public DNS service is popular. Surge treats traditional DNS, encrypted DNS, and name resolution for proxied destinations differently, so recheck both resolution and routing for domestic and international domains after making a change.
+
+### `skip-proxy` is not `DIRECT`
+
+The list includes loopback addresses, common private networks, carrier-grade NAT space, Apple's address range, `localhost`, and `.local` targets. Its primary purpose is to avoid compatibility problems caused by system proxy capture.
+
+A common mistake is to treat `skip-proxy` as a `DIRECT` routing rule. According to [Surge's option reference](https://manual.nssurge.com/others/misc-options.html), it mainly controls how a request bypasses Surge Proxy Server and is handled through mechanisms such as VIF. Once a request enters Surge, `[Rule]` still determines its outbound policy. If a destination must connect directly, express that requirement explicitly:
+
+```ini
+[Rule]
+IP-CIDR, 192.168.0.0/16, DIRECT, no-resolve
+IP-CIDR, 10.0.0.0/8, DIRECT, no-resolve
+```
+
+### Verify IPv6 behavior
+
+`ipv6 = true` enables the corresponding IPv6 functionality. The setting alone does not guarantee the intended result: the proxy, DNS resolver, rule sets, and current network must all support the expected IPv6 path. In addition to opening an IPv6 test page, inspect recent requests in Surge and confirm which rules and policies matched the IPv4 and IPv6 connections separately.
+
+### Test URLs only measure availability
+
+`internet-test-url` is used to test Internet connectivity and `DIRECT`, while `proxy-test-url` is the default target for proxy policy tests. `test-timeout = 3` limits the wait to three seconds. A good test endpoint returns a small response, remains stable over time, and can be reached both directly and through the proxy.
+
+Latency reflects performance to the test endpoint, not performance for every service. A proxy with a fast test result can still fail for a particular website because of its exit region, service-side restrictions, or routing differences.
+
+## `[Proxy Group]`: policy groups
+
+The relevant policy groups are configured as follows:
+
+```ini
+[Proxy Group]
+HK = smart, policy-path=<subscription-url>, policy-regex-filter="香港", update-interval=-1, hidden=true
+TW = smart, policy-path=<subscription-url>, policy-regex-filter="台湾", update-interval=-1, hidden=true
+SG = smart, policy-path=<subscription-url>, policy-regex-filter="新加坡", update-interval=-1, hidden=true
+JP = smart, policy-path=<subscription-url>, policy-regex-filter="日本", update-interval=-1, hidden=true
+US = smart, policy-path=<subscription-url>, policy-regex-filter="美国", update-interval=-1, hidden=true
+
+Proxy = select, HK, TW, SG, JP, US, DIRECT
+Missing = select, Proxy, DIRECT
+```
+
+These lines contain six important ideas:
+
+1. `policy-path` imports proxy policies from an external file or URL instead of hard-coding proxies in the main profile.
+2. `policy-regex-filter` matches proxy names and includes only proxies for the corresponding region.
+3. `update-interval=-1` disables scheduled updates of the remote policy. Proxies are still fetched on first load and subsequently refresh only when external resources are updated manually.
+4. `smart` considers connectivity, handshake latency, RTT, packet loss, and historical performance for individual websites when choosing a proxy within a regional group.
+5. `hidden=true` hides a regional group from the policy selection interface without disabling it.
+6. `Proxy` and `Missing` remain `select` groups: the former chooses a region, while the latter determines whether otherwise unmatched traffic uses `Proxy` or `DIRECT`.
+
+See Surge's [Policy Including documentation](https://manual.nssurge.com/policy-group/policy-including.html) for the behavior of external policies.
+
+### Why automatic subscription updates are disabled
+
+In this setup, automatic updates are disabled because the proxy provider requires its subscription endpoint to be enabled manually for security reasons. The endpoint remains available for only five minutes, so scheduled refreshes cannot work reliably. If a provider supports unattended updates, set `update-interval=86400` to refresh the subscription every 24 hours and receive new proxies promptly.
+
+`update-interval=-1` only stops Surge from downloading a new remote proxy list. It does not stop `smart` from evaluating the current proxies, nor does it stop a `url-test` group from retesting existing proxies according to `interval=600`. The remote resource can still be refreshed manually in Surge.
+
+### Automatic selection within a region
+
+Automatic selection inside each regional group is provided by `smart`. It evaluates connectivity, handshake latency, RTT, packet loss, and historical performance for individual sites, but it does not measure proxy bandwidth. Smart groups require Surge iOS 5.11.0 or later with the corresponding subscription feature unlocked, or Surge Mac 5.7.0 or later. See the [Surge Smart Group guide](https://kb.nssurge.com/surge-knowledge-base/guidelines/smart-group) for details.
+
+After a regional group chooses a proxy automatically, the region itself is still selected manually through `Proxy`.
+
+If the device does not support `smart`, use `url-test` for the regional groups instead:
+
+```ini
+HK = url-test, policy-path=<subscription-url>, policy-regex-filter="香港", update-interval=-1, interval=600, tolerance=100, timeout=5, evaluate-before-use=true, hidden=true
+```
+
+Apply the same parameters to the other regions. `url-test` selects the available proxy with the lowest test latency, while `tolerance=100` prevents frequent changes when results differ by only a small amount. It measures access to the test URL and, unlike `smart`, does not build destination-specific knowledge. Parameter definitions are available in the [Surge Automatic Testing Group documentation](https://manual.nssurge.com/policy-group/url-test.html). Use `fallback` instead when availability and fixed priority matter more than speed.
+
+### Matching regions by proxy name
+
+This design depends on the naming convention used by the subscription. The Chinese regular expressions above match the original provider's names: `香港`, `台湾`, `新加坡`, `日本`, and `美国` mean Hong Kong, Taiwan, Singapore, Japan, and the United States respectively. If the provider changes “香港” to `HK`, for example, the corresponding group can become empty. When a subscription refresh succeeds but a group has no proxies, inspect the actual proxy names and update `policy-regex-filter` instead of repeatedly reimporting the profile.
+
+### The `Missing` group
+
+`Missing` contains `Proxy` and `DIRECT`, allowing otherwise unclassified traffic to be switched independently without changing explicit `Proxy` rules for Microsoft, OpenAI, GitHub, and other services.
+
+That separation is why `Missing` is worth keeping. `Proxy` answers “which region should proxy-required traffic use?” while `Missing` answers “should unclassified traffic use a proxy at all?” Replacing it with `FINAL, Proxy` would mean that temporarily directing unknown traffic requires changing `Proxy`, which would also affect every service rule that explicitly uses it.
+
+## `[Rule]`: routing rules
+
+Surge evaluates rules from top to bottom and stops after the first match. The official [Traffic Routing documentation](https://manual.nssurge.com/rule.html) describes the same first-match-wins behavior. Put custom exceptions before large remote rule sets.
+
+The profile reserves space for two kinds of custom rule:
+
+```ini
+# Must use a proxy
+DOMAIN-SUFFIX, example.com, Proxy
+
+# Must connect directly
+DOMAIN-SUFFIX, example.cn, DIRECT
+```
+
+It then loads third-party rule sets:
+
+| Rule set | Policy | Intent |
+| --- | --- | --- |
+| Apple | `DIRECT` | Prefer direct connections for Apple traffic |
+| Microsoft | `Proxy` | Route Microsoft traffic through the proxy |
+| OpenAI | `Proxy` | Route OpenAI traffic through the proxy |
+| GitHub | `Proxy` | Route GitHub traffic through the proxy |
+| Google | `Proxy` | Route Google traffic through the proxy |
+| Telegram | `Proxy` | Route Telegram traffic through the proxy |
+| Discord | `Proxy` | Route Discord traffic through the proxy |
+| Proxy | `Proxy` | Route generally proxied domains and addresses through the proxy |
+| China_All | `DIRECT` | Prefer direct connections for services in mainland China |
+
+These lists come from the Surge rules in [blackmatrix7/ios_rule_script](https://github.com/blackmatrix7/ios_rule_script). `RULE-SET` references a remote file and assigns one policy to the entire file; entries inside that rule set do not independently choose between `Proxy` and `DIRECT`.
+
+There are two maintenance tradeoffs:
+
+- Remote lists can evolve while the main profile stays concise, but list changes can also change routing behavior immediately.
+- Service-specific rules appear before `China_All`, so a destination present in more than one list uses the earlier service policy.
+
+Third-party rules are not permanent statements of fact. If a service suddenly changes routes after an update, inspect the matched rule in Surge's recent requests and review changes in the rule repository instead of diagnosing solely from whether the website opens.
+
+### `GEOIP` and the final fallback
+
+The rule section ends with:
+
+```ini
+GEOIP, CN, DIRECT
+FINAL, Missing
+```
+
+`GEOIP, CN, DIRECT` connects directly when the destination IP is classified as mainland China. It is an IP-based rule and may trigger DNS resolution when the request still contains a hostname. Surge's [IP-based Rule documentation](https://manual.nssurge.com/rule/ip-based.html) explains the relationship between `GEOIP`, DNS resolution, and `no-resolve`.
+
+`FINAL, Missing` is the required fallback: every request that did not match an earlier rule is delegated to `Missing`. Compared with `FINAL, Proxy`, this adds a manual switch that is useful when investigating an unfamiliar service.
+
+## Review LAN listener settings carefully
+
+The original profile also includes these settings:
+
+```ini
+allow-wifi-access = true
+http-listen = 0.0.0.0:8234
+socks5-listen = 0.0.0.0:8235
+wifi-access-http-port = 6152
+wifi-access-socks5-port = 6153
+```
+
+They allow other devices to use the HTTP or SOCKS5 proxy services exposed by Surge. `0.0.0.0` listens on every network interface, not only the local loopback interface.
+
+If other devices on the LAN genuinely need the proxy, restrict exposure with the system firewall and router, and configure authentication where supported. Surge iOS provides `wifi-access-http-auth`. Even though current versions restrict these services to the LAN by default, never forward the ports to the public Internet or expose them without authentication on untrusted hotel or airport networks.
+
+If proxy sharing is unnecessary, disable `allow-wifi-access` and remove the extra listeners or bind them only to `127.0.0.1`. A profile can be shared between devices, but macOS listener options and iOS Wi-Fi access options have different scopes. Keeping a minimal profile for each platform is safer.
+
+## Verifying the imported profile
+
+Successful import is not sufficient verification. A reliable check should include at least the following:
+
+1. Run Surge's profile check and confirm that there are no syntax errors, duplicate names, or external resource failures.
+2. In policy diagnostics, confirm that all five regional groups imported proxies and can complete a test. Because `hidden=true` removes them from the regular selection menu, temporarily remove `hidden` while troubleshooting if necessary.
+3. Select the intended policies for both `Proxy` and `Missing` instead of relying on selections retained from an older profile.
+4. Visit one domestic website and one service that should use the proxy, then inspect recent requests to confirm the matched rule, policy group, and final proxy.
+5. Test IPv4 and IPv6 separately. If LAN proxy access is enabled, verify its scope and authentication from another device.
+6. Refresh external policies and remote rules once manually to verify that the subscription URL, GitHub resources, and current DNS setup are reachable.
+
+Common failures can usually be narrowed down in this order:
+
+- **A regional group is empty:** inspect proxy names, then adjust `policy-regex-filter`.
+- **A domestic service uses the proxy:** check whether an earlier service-specific or general `Proxy` rule matched first.
+- **A service remains unavailable through the proxy:** inspect the exit region, proxy availability, DNS, and service-side restrictions. Matching `Proxy` only confirms the routing decision.
+- **A LAN device cannot connect:** check the listen address, port, system firewall, subnet restriction, and authentication.
+- **LAN domains or simple hostnames behave incorrectly:** inspect `skip-proxy`, `exclude-simple-hostnames`, and explicit direct rules instead of changing only DNS.
+
+## Profile template
+
+```ini
+[General]
+
+loglevel = notify
+dns-server = system, 114.114.114.114, 223.5.5.5
+skip-proxy = 127.0.0.1, 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12, 100.64.0.0/10, 17.0.0.0/8, localhost, *.local, *.crashlytics.com
+allow-wifi-access = true
+enhanced-mode-by-rule = false
+exclude-simple-hostnames = true
+show-error-page-for-reject = true
+ipv6 = true
+replica = false
+http-listen = 0.0.0.0:8234
+socks5-listen = 0.0.0.0:8235
+wifi-access-http-port = 6152
+wifi-access-socks5-port = 6153
+internet-test-url = http://baidu.com
+proxy-test-url = https://www.gstatic.com/generate_204
+test-timeout = 3
+
+[Proxy]
+
+[Proxy Group]
+
+HK = smart, policy-path=<subscription-url>, policy-regex-filter="香港", update-interval=-1, hidden=true
+TW = smart, policy-path=<subscription-url>, policy-regex-filter="台湾", update-interval=-1, hidden=true
+SG = smart, policy-path=<subscription-url>, policy-regex-filter="新加坡", update-interval=-1, hidden=true
+JP = smart, policy-path=<subscription-url>, policy-regex-filter="日本", update-interval=-1, hidden=true
+US = smart, policy-path=<subscription-url>, policy-regex-filter="美国", update-interval=-1, hidden=true
+
+Proxy = select, HK, TW, SG, JP, US, DIRECT
+Missing = select, Proxy, DIRECT
+
+[Rule]
+
+# DOMAIN-SUFFIX, example.com, Proxy
+# DOMAIN-SUFFIX, example.cn, DIRECT
+
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Apple/Apple.list, DIRECT
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Microsoft/Microsoft.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/OpenAI/OpenAI.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/GitHub/GitHub.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Google/Google.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Telegram/Telegram.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Discord/Discord.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Proxy/Proxy.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/China/China_All.list, DIRECT
+
+GEOIP, CN, DIRECT
+FINAL, Missing
+```

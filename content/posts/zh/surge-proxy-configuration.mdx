@@ -1,0 +1,276 @@
+---
+title: "Surge 代理配置"
+description: "拆解一份 Surge 配置中的 DNS、远程节点、策略组和分流规则，并给出脱敏模板、验证方法与安全建议。"
+date: "2026-07-17"
+updated: "2026-07-18"
+category: "tech"
+tags: ["surge", "proxy", "networking"]
+---
+
+一份 Surge 配置真正决定的，不只是“哪些网站走代理”，而是三个相互连接的问题：请求由谁接管、可用的出口从哪里来，以及每个请求最后选择哪个出口。
+
+<Callout title="保护订阅地址">
+`<subscription-url>` 通常不只是普通下载链接。拿到它的人可能能够读取你的节点列表，也可能消耗套餐流量。不要把原始配置直接提交到公开仓库、截图分享或粘贴进公开问题；如果链接已经泄露，应在服务商后台重置订阅地址。
+</Callout>
+
+## 代理数据流
+
+这份配置没有在 `[Proxy]` 中静态写入节点，而是从远程订阅读取节点，再按地区组成策略组：
+
+```text
+远程订阅
+  ├─ 香港节点    -> HK ─┐
+  ├─ 台湾节点    -> TW  │
+  ├─ 新加坡节点  -> SG  ├─ Proxy ─┐
+  ├─ 日本节点    -> JP  │         ├─ Missing
+  └─ 美国节点    -> US ─┘ DIRECT ─┘
+
+请求 -> 自定义规则 -> 服务规则集 -> 中国规则 -> GEOIP -> FINAL
+```
+
+`HK`、`TW`、`SG`、`JP` 和 `US` 是地区策略组；`Proxy` 是它们的统一入口；`Missing` 则负责相应没有被前面规则匹配的请求。规则层只需要引用 `Proxy`、`DIRECT` 和 `Missing`，不必关心某个具体节点的协议与地址。
+
+订阅负责提供节点，策略组负责组织出口，规则负责表达意图。以后替换订阅或节点时，通常不用重写整套分流规则。
+
+## `[General]`：接管、DNS 与测试
+
+样本配置的通用部分可以归纳为下面几组：
+
+```ini
+[General]
+loglevel = notify
+dns-server = system, 114.114.114.114, 223.5.5.5
+skip-proxy = 127.0.0.1, 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12, \
+  100.64.0.0/10, 17.0.0.0/8, localhost, *.local, *.crashlytics.com
+exclude-simple-hostnames = true
+ipv6 = true
+internet-test-url = https://example.com/connectivity-check
+proxy-test-url = https://example.com/connectivity-check
+test-timeout = 3
+```
+
+### DNS 的选择
+
+`dns-server` 同时使用系统 DNS、`114.114.114.114` 和 `223.5.5.5`。这样做偏向兼容性：本地服务和国内域名通常更容易得到符合当前网络环境的结果。
+
+它并不等于“所有 DNS 都经过代理”，也不提供加密 DNS 的隐私属性。如果所在网络不可信，或者需要稳定的加密解析，可以根据自己的网络环境评估 `encrypted-dns-server`；不要只因为某个公共 DNS 看起来流行就盲目替换。Surge 对传统 DNS、加密 DNS 和代理目标解析的处理并不完全相同，修改后应重新检查国内外域名的解析与分流。
+
+### `skip-proxy` 不等于 `DIRECT`
+
+这里列出了回环地址、常见私有网段、运营商级 NAT 地址、Apple 网段、`localhost` 和 `.local` 等目标，主要用于减少系统代理接管带来的兼容性问题。
+
+容易误解的是，`skip-proxy` 不等于一条 `DIRECT` 分流规则。按照 [Surge 的参数说明](https://manual.nssurge.com/others/misc-options.html)，它主要影响请求如何避开 Surge Proxy Server、转由 VIF 等路径处理。请求进入 Surge 后，最终出口仍取决于 `[Rule]`。如果目标必须直连，应在规则中明确写出，例如：
+
+```ini
+[Rule]
+IP-CIDR, 192.168.0.0/16, DIRECT, no-resolve
+IP-CIDR, 10.0.0.0/8, DIRECT, no-resolve
+```
+
+### IPv6 要以验证结果为准
+
+`ipv6 = true` 表示配置准备使用 IPv6。然而，配置项本身只表示启用了相应功能，成功使用 IPv6 还要求代理节点、DNS、规则集和当前网络必须共同支持预期行为。验证时除了访问检测 IPv6 的网页之外，还要分别检查 IPv4、IPv6 请求在 Surge 最近请求列表里命中了什么规则和策略。
+
+### 测试 URL 只负责测可用性
+
+`internet-test-url` 用于网络及 `DIRECT` 测试，`proxy-test-url` 是代理策略的默认测试地址，`test-timeout = 3` 将等待时间限制为三秒。测试地址最好满足三个条件：响应小、长期稳定、在直连与代理网络中都能访问。
+
+延迟测试反映的是“到测试目标的表现”，不代表节点访问所有服务的速度。某个节点测试很快，也可能因为出口地区、服务风控或路由差异而无法访问特定网站。
+
+## `[Proxy Group]`：代理组
+
+`[Proxy Group]` 的具体配置如下：
+
+```ini
+[Proxy Group]
+HK = smart, policy-path=<subscription-url>, policy-regex-filter="香港", update-interval=-1, hidden=true
+TW = smart, policy-path=<subscription-url>, policy-regex-filter="台湾", update-interval=-1, hidden=true
+SG = smart, policy-path=<subscription-url>, policy-regex-filter="新加坡", update-interval=-1, hidden=true
+JP = smart, policy-path=<subscription-url>, policy-regex-filter="日本", update-interval=-1, hidden=true
+US = smart, policy-path=<subscription-url>, policy-regex-filter="美国", update-interval=-1, hidden=true
+
+Proxy = select, HK, TW, SG, JP, US, DIRECT
+Missing = select, Proxy, DIRECT
+```
+
+这几行包含六个关键点：
+
+1. `policy-path` 从外部文件或 URL 导入代理策略，而不是把节点写死在主配置里。
+2. `policy-regex-filter` 用正则匹配节点名称，只把对应地区的节点纳入当前组。
+3. `update-interval=-1` 禁用远程策略的定时更新，首次加载仍会获取节点，之后只在手动更新外部资源时刷新。
+4. `smart` 综合连接可用性、握手延迟、RTT、丢包和特定网站的历史表现，自动决定地区组内使用哪个节点。
+5. `hidden=true` 只把地区组从策略选择界面隐藏，不会停用该组。
+6. `Proxy` 和 `Missing` 仍是 `select`：前者选择地区，后者决定未知流量走 `Proxy` 还是 `DIRECT`。
+
+外部策略的具体语义可以对照 [Surge 官方的 Policy Including 文档](https://manual.nssurge.com/policy-group/policy-including.html)。
+
+### 为何禁用自动更新
+
+禁用自动更新的原因是个人代理服务商出于安全性考虑要求手动开启订阅开关，且每次持续五分钟后自动关闭，无法满足自动更新要求。如果代理服务商支持自动更新，建议将 `update-interval` 项设置为 `86400`，即每 24 小时自动更新一次订阅，从而及时地获取最新代理节点。
+
+这里的 `update-interval=-1` 只停止下载新的远程节点列表，不会停止 `smart` 的动态质量判断，也不会停止 `url-test` 按 `interval=600` 重新测试已有节点。远程资源仍可在 Surge 中手动更新。
+
+### 地区策略组内节点自动选择
+
+地区策略组内节点的自动选择依赖 Surge 的 `smart` 选项。`smart` 会综合连接可用性、握手延迟、RTT、丢包和特定网站的历史表现，但不评估节点带宽。它要求 Surge iOS 5.11.0 以上并解锁对应订阅功能，或 Surge Mac 5.7.0 以上。具体行为可参考 [Surge Smart 智能策略组说明](https://kb.nssurge.com/surge-knowledge-base/zh/guidelines/smart-group)。
+
+在地区策略组内部自动筛选并选择完毕后，选用哪一地区的节点进行代理最终由 `Proxy` 的人工选择决定。
+
+如果设备不支持 `smart`，可以将地区组改成 `url-test`：
+
+```ini
+HK = url-test, policy-path=<subscription-url>, policy-regex-filter="香港", update-interval=-1, interval=600, tolerance=100, timeout=5, evaluate-before-use=true, hidden=true
+```
+
+其余地区使用相同参数。`url-test` 会选择测试延迟最低的可用节点；`tolerance=100` 可以避免延迟只相差少量时频繁切换。它只反映节点访问测试 URL 的表现，不像 `smart` 那样根据不同目标网站积累线路质量信息。参数定义见 [Surge Automatic Testing Group 文档](https://manual.nssurge.com/policy-group/url-test.html)。如果只关心可用性和固定优先级、不关心速度，则可以使用 `fallback`。
+
+### 地区分组的正则匹配
+
+这套设计依赖订阅中的节点命名。如果服务商把“香港”改成 `HK`，对应策略组就可能变空。遇到“订阅更新成功但组里没有节点”时，首先检查实际节点名称和正则，而不是反复导入配置。
+
+### `Missing` 组
+
+`Missing` 把 `Proxy` 与 `DIRECT` 放在一起，使未分类流量可以独立切换，而不改变已经明确指向 `Proxy` 的 Microsoft、OpenAI、GitHub 等规则。
+
+保留 `Missing` 的价值：`Proxy` 表达“需要代理时使用哪个地区”，`Missing` 表达“没有分类的请求默认是否代理”。如果直接写成 `FINAL, Proxy`，临时将未知流量改为直连时就必须修改 `Proxy`，也会同时影响所有明确使用 `Proxy` 的服务规则。
+
+## `[Rule]`：代理规则
+
+Surge 规则从上到下检查，第一条匹配后就停止。官方的 [Traffic Routing 文档](https://manual.nssurge.com/rule.html) 也强调了这个“first match wins”的执行方式。因此，自定义例外必须放在大型远程规则集之前。
+
+样本先预留了两类自定义规则：
+
+```ini
+# 必须代理
+DOMAIN-SUFFIX, example.com, Proxy
+
+# 必须直连
+DOMAIN-SUFFIX, example.cn, DIRECT
+```
+
+随后加载第三方规则集：
+
+| 规则集 | 策略 | 意图 |
+| --- | --- | --- |
+| Apple | `DIRECT` | Apple 相关流量优先直连 |
+| Microsoft | `Proxy` | Microsoft 相关流量走代理 |
+| OpenAI | `Proxy` | OpenAI 相关流量走代理 |
+| GitHub | `Proxy` | GitHub 相关流量走代理 |
+| Google | `Proxy` | Google 相关流量走代理 |
+| Telegram | `Proxy` | Telegram 相关流量走代理 |
+| Discord | `Proxy` | Discord 相关流量走代理 |
+| Proxy | `Proxy` | 通用代理域名与地址 |
+| China_All | `DIRECT` | 国内服务优先直连 |
+
+这些列表来自 [blackmatrix7/ios_rule_script](https://github.com/blackmatrix7/ios_rule_script) 的 Surge 规则目录。`RULE-SET` 只引用远程文件，整个文件统一指向主配置指定的策略；规则集内部不再单独决定走 `Proxy` 还是 `DIRECT`。
+
+这里有两个维护上的取舍：
+
+- 远程列表可以持续更新，主配置保持简洁，但列表内容变化也会直接改变分流结果。
+- 服务规则放在 `China_All` 之前，所以一个同时出现在多个列表中的目标，会优先采用更靠前的服务策略。
+
+第三方规则不是永久正确的事实库。更新后如果某个服务突然改变出口，应在 Surge 最近请求中确认实际命中的规则，并查看规则仓库的变更，而不是仅凭网站能否打开来猜测。
+
+### `GEOIP` 与最后的兜底
+
+规则末尾是：
+
+```ini
+GEOIP, CN, DIRECT
+FINAL, Missing
+```
+
+`GEOIP, CN, DIRECT` 根据目标 IP 的地理数据库结果让中国大陆地址直连。它属于 IP 类规则；当请求目标还是域名时，可能触发 DNS 解析。Surge 官方在 [IP-based Rule](https://manual.nssurge.com/rule/ip-based.html) 中说明了 `GEOIP`、DNS 解析和 `no-resolve` 的关系。
+
+`FINAL, Missing` 是必需的兜底：所有未被前面规则命中的请求都交给 `Missing`。这比直接写 `FINAL, Proxy` 多一层手动开关，排查某个陌生服务时很方便。
+
+## 注意局域网监听相关设置
+
+原配置还包含如下设置：
+
+```ini
+allow-wifi-access = true
+http-listen = 0.0.0.0:8234
+socks5-listen = 0.0.0.0:8235
+wifi-access-http-port = 6152
+wifi-access-socks5-port = 6153
+```
+
+它们允许其他设备使用 Surge 提供的 HTTP 或 SOCKS5 代理。`0.0.0.0` 表示监听所有网络接口，并不只是本机回环地址。
+
+如果确实要给同一局域网的设备提供代理，应限制防火墙与路由器暴露范围，并为支持的服务设置认证；Surge iOS 可使用 `wifi-access-http-auth`。即使当前版本默认提供局域网范围限制，也不要把端口转发到公网，更不要在酒店、机场等不可信网络中无认证开放。
+
+如果没有共享代理的需求，最稳妥的选择是关闭 `allow-wifi-access`，并删除额外监听项或仅绑定 `127.0.0.1`。配置文件可以跨设备复用，但 Mac OS 监听项与 iOS Wi-Fi 访问项的适用范围不同，建议为不同设备保留各自最小化的配置。
+
+## 导入之后如何验证
+
+不要以“配置能导入”作为完成标准。一次可靠的验证至少包括：
+
+1. 在 Surge 中执行配置检查，确认没有语法、重复名称或远程资源错误。
+2. 在策略诊断中确认五个地区组都导入了节点并能完成测试；因为设置了 `hidden=true`，它们不会出现在常规选择菜单中。排错时可以暂时移除 `hidden`。
+3. 手动选择 `Proxy` 与 `Missing` 的当前策略，不依赖旧配置遗留的选择状态。
+4. 分别访问一个国内站点和一个应代理的服务，在最近请求中核对命中的规则、策略组与最终节点。
+5. 分别测试 IPv4 与 IPv6；如果启用了局域网代理，再从另一台设备验证访问范围与认证。
+6. 主动刷新一次外部策略和远程规则，确认订阅地址、GitHub 资源与当前 DNS 都可达。
+
+常见故障通常可以按下面的顺序定位：
+
+- **地区组为空**：先看节点名称，再改 `policy-regex-filter`。
+- **国内服务走了代理**：查看是否先命中了更靠前的服务规则或通用 `Proxy` 规则。
+- **某个服务走代理仍不可用**：继续检查出口地区、节点可用性、DNS 与服务自身限制；“命中 Proxy”只是路径选择正确。
+- **局域网设备连不上**：核对监听地址、端口、系统防火墙、同网段限制和认证。
+- **局域网域名或短主机名异常**：检查 `skip-proxy`、`exclude-simple-hostnames` 与显式直连规则，而不是只改 DNS。
+
+## 配置文件模板
+
+```ini
+[General]
+
+loglevel = notify
+dns-server = system, 114.114.114.114, 223.5.5.5
+skip-proxy = 127.0.0.1, 192.168.0.0/16, 10.0.0.0/8, 172.16.0.0/12, 100.64.0.0/10, 17.0.0.0/8, localhost, *.local, *.crashlytics.com
+allow-wifi-access = true
+enhanced-mode-by-rule = false
+exclude-simple-hostnames = true
+show-error-page-for-reject = true
+ipv6 = true
+replica = false
+http-listen = 0.0.0.0:8234
+socks5-listen = 0.0.0.0:8235
+wifi-access-http-port = 6152
+wifi-access-socks5-port = 6153
+internet-test-url = http://baidu.com
+proxy-test-url = https://www.gstatic.com/generate_204
+test-timeout = 3
+
+[Proxy]
+
+[Proxy Group]
+
+HK = smart, policy-path=<subscription-url>, policy-regex-filter="香港", update-interval=-1, hidden=true
+TW = smart, policy-path=<subscription-url>, policy-regex-filter="台湾", update-interval=-1, hidden=true
+SG = smart, policy-path=<subscription-url>, policy-regex-filter="新加坡", update-interval=-1, hidden=true
+JP = smart, policy-path=<subscription-url>, policy-regex-filter="日本", update-interval=-1, hidden=true
+US = smart, policy-path=<subscription-url>, policy-regex-filter="美国", update-interval=-1, hidden=true
+
+Proxy = select, HK, TW, SG, JP, US, DIRECT
+Missing = select, Proxy, DIRECT
+
+[Rule]
+
+# DOMAIN-SUFFIX, example.com, Proxy
+# DOMAIN-SUFFIX, example.cn, DIRECT
+
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Apple/Apple.list, DIRECT
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Microsoft/Microsoft.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/OpenAI/OpenAI.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/GitHub/GitHub.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Google/Google.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Telegram/Telegram.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Discord/Discord.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/Proxy/Proxy.list, Proxy
+RULE-SET, https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Surge/China/China_All.list, DIRECT
+
+GEOIP, CN, DIRECT
+FINAL, Missing
+```

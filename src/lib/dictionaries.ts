@@ -1,6 +1,14 @@
 import type { Locale } from "@/lib/i18n";
 
-export type TagId = "next-js" | "mdx" | "writing" | "engineering" | "bl";
+export type TagId =
+  | "next-js"
+  | "mdx"
+  | "writing"
+  | "engineering"
+  | "bl"
+  | "surge"
+  | "proxy"
+  | "networking";
 export type CategoryId = "tech" | "essays" | "fictions";
 
 export interface Dictionary {
@@ -187,6 +195,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
       writing: "Writing",
       engineering: "Engineering",
       bl: "BL",
+      surge: "Surge",
+      proxy: "Proxy",
+      networking: "Networking",
     },
     categoryLabels: {
       tech: "Tech",
@@ -296,6 +307,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
       writing: "写作",
       engineering: "工程",
       bl: "BL",
+      surge: "Surge",
+      proxy: "代理",
+      networking: "网络",
     },
     categoryLabels: {
       tech: "科技",
