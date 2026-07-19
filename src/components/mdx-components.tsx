@@ -1,5 +1,7 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
+import { CopyCodeButton } from "@/components/copy-code-button";
+
 interface CalloutProps {
   title?: string;
   children: ReactNode;
@@ -40,5 +42,6 @@ function Code({ className, children, ...props }: ComponentPropsWithoutRef<"code"
 export const mdxComponents = {
   a: Anchor,
   code: Code,
+  pre: CopyCodeButton,
   Callout,
 };

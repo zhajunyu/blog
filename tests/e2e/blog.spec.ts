@@ -135,6 +135,100 @@ test("highlights fenced code by language and preserves plain text", async ({ pag
   expect(plainTextColors).toHaveLength(1);
 });
 
+test("copies a fenced code block from its copy button", async ({ page }) => {
+  await page.addInitScript(() => {
+    let copiedText = "";
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        readText: async () => copiedText,
+        writeText: async (text: string) => {
+          copiedText = text;
+        },
+      },
+    });
+  });
+  await page.goto("/en/posts/building-this-blog");
+
+  const codeBlock = page
+    .locator(".code-block-shell")
+    .filter({ hasText: "type PostFrontmatter" })
+    .first();
+  const expectedCode = await codeBlock.locator("pre code").textContent();
+  const copyButton = codeBlock.locator("button");
+  const codeType = codeBlock.locator(".code-block-type");
+
+  await expect(codeType).toHaveText("TypeScript");
+  const [typeBox, buttonBox] = await Promise.all([
+    codeType.boundingBox(),
+    copyButton.boundingBox(),
+  ]);
+
+  if (!typeBox || !buttonBox) {
+    throw new Error("Expected code type and copy control to be visible.");
+  }
+
+  expect(Math.abs(typeBox.y + typeBox.height / 2 - (buttonBox.y + buttonBox.height / 2))).toBeLessThanOrEqual(1);
+
+  await copyButton.click();
+
+  await expect(copyButton).toHaveAccessibleName("Copied");
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe(expectedCode);
+});
+
+test("keeps code controls inside an overflowing code block", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/en/posts/surge-proxy-configuration");
+
+  const codeBlocks = page.locator(".code-block-shell");
+  const overflowingIndex = await codeBlocks.evaluateAll((blocks) =>
+    blocks.findIndex((block) => {
+      const pre = block.querySelector("pre");
+      return pre ? pre.scrollWidth > pre.clientWidth : false;
+    }),
+  );
+
+  expect(overflowingIndex).toBeGreaterThanOrEqual(0);
+
+  const codeBlock = codeBlocks.nth(overflowingIndex);
+  const scrollArea = codeBlock.locator("pre");
+  const codeType = codeBlock.locator(".code-block-type");
+  const copyButton = codeBlock.locator("button");
+  const [shellBox, typeBox, buttonBox] = await Promise.all([
+    codeBlock.boundingBox(),
+    codeType.boundingBox(),
+    copyButton.boundingBox(),
+  ]);
+
+  if (!shellBox || !typeBox || !buttonBox) {
+    throw new Error("Expected overflowing code block controls to be visible.");
+  }
+
+  await scrollArea.evaluate((pre) => {
+    pre.scrollLeft = pre.scrollWidth;
+  });
+  await expect.poll(() => scrollArea.evaluate((pre) => pre.scrollLeft)).toBeGreaterThan(0);
+
+  const [scrolledTypeBox, scrolledButtonBox] = await Promise.all([
+    codeType.boundingBox(),
+    copyButton.boundingBox(),
+  ]);
+
+  if (!scrolledTypeBox || !scrolledButtonBox) {
+    throw new Error("Expected code controls to remain visible after scrolling.");
+  }
+
+  expect(Math.abs(scrolledTypeBox.x - typeBox.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(scrolledButtonBox.x - buttonBox.x)).toBeLessThanOrEqual(1);
+  expect(scrolledTypeBox.x).toBeGreaterThanOrEqual(shellBox.x);
+  expect(scrolledButtonBox.x + scrolledButtonBox.width).toBeLessThanOrEqual(
+    shellBox.x + shellBox.width,
+  );
+});
+
 test("switches language through the header control", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/en/posts/building-this-blog");

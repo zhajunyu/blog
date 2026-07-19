@@ -22,6 +22,7 @@ export function MdxContent({ source }: MdxContentProps) {
             [
               rehypeShiki,
               {
+                addLanguageClass: true,
                 themes: {
                   light: "github-dark",
                   dark: "github-dark-high-contrast",
