@@ -1,0 +1,415 @@
+---
+title: "Zsh Configuration"
+description: "Turn Zsh startup files, the Homebrew environment, completion, history, plugins, and the prompt on macOS into a maintainable personal configuration."
+date: "2026-07-21"
+category: "tech"
+tags: ["zsh", "macos", "terminal"]
+---
+
+The easiest way for a Zsh configuration to get out of control is to put everything in `.zshrc`: environment variables, completion, aliases, plugins, the prompt, and temporary experiments all end up mixed together. The result is long, cluttered, and difficult to maintain.
+
+The configuration in this article uses a structure with a thin entry file and functionality split into modules. Zsh's own startup order handles the layers, while `.zshrc` only loads interactive modules. This makes it easier to migrate to another machine, investigate slow startup, or temporarily disable a plugin.
+
+## Zsh Configuration Files
+
+For an explanation of interactive and login shells, as well as recommendations about what belongs in startup files, see [A User's Guide to the Z-Shell](https://zsh.sourceforge.io/Guide/zshguide02.html) and the [official Zsh Startup/Shutdown Files documentation](https://zsh.sourceforge.io/Doc/Release/Files.html).
+
+The Zsh documentation uses `/etc/zshenv`, `/etc/zprofile`, `/etc/zshrc`, `/etc/zlogin`, and `/etc/zlogout` as the system-level startup file paths. Build configurations may differ between systems and distributions, and some Linux distributions use an `/etc/zsh/` directory. The table below uses the official default names; user-level files are determined by `$ZDOTDIR`:
+
+| Configuration file | Purpose | Notes |
+| ------------------ | ------- | ----- |
+| `/etc/zshenv` | Set the very small amount of environment shared by every user | Every Zsh instance reads it first, and it cannot be skipped with `-f`. It should not contain commands that produce output or assume that the shell is connected to a TTY. |
+| `$ZDOTDIR/.zshenv` | Set the user's basic environment | Read when `RCS` is enabled. It should not contain commands that produce output or assume that the shell is connected to a TTY. |
+| `/etc/zprofile` | Run commands for all users when starting a **login shell** | Sets the login-shell environment at the system level. On Linux, some distributions may symlink it to the POSIX shell `/etc/profile`. |
+| `$ZDOTDIR/.zprofile` | Run user commands when starting a **login shell** | Usually used for session-wide environment variables, such as Homebrew initialization. |
+| `/etc/zshrc` | Set up and run commands for **interactive shells** for all users | Read when starting an interactive shell. |
+| `$ZDOTDIR/.zshrc` | Set up and run the user's **interactive shell** configuration | Read when starting an interactive shell. It is a good place for completion, key bindings, aliases, functions, plugins, and the prompt. |
+| `/etc/zlogin` | Run commands for all users after interactive initialization in a login shell | Read when starting a **login shell**. |
+| `$ZDOTDIR/.zlogin` | Run user commands after interactive initialization in a login shell | Read when starting a **login shell**. It can usually remain empty, or contain only one-time commands that should run after login. |
+| `$ZDOTDIR/.zlogout` | Run user commands when a **login shell** exits | On logout from a login shell, the user-level `.zlogout` is read before the system-level `zlogout`. |
+| `/etc/zlogout` | Run commands for all users when a **login shell** exits | |
+
+Keep the following points in mind:
+
+- If `$ZDOTDIR` is not set, `$HOME` is used.
+- `RCS` and `GLOBAL_RCS` are enabled by default. Unsetting `RCS` stops later startup files from being read; unsetting `GLOBAL_RCS` stops later system-level startup files from being read.
+- `/etc/zshenv` should be kept as small as possible because every Zsh instance reads it.
+
+On macOS, the system itself is not initialized by a Zsh login shell. Here, “login” is closer to whether the terminal emulator treats a newly opened command-line session as a login session during initialization. In Apple's Terminal settings, the default can be set to “Default login shell”, and the current default login shell is Zsh.
+
+With Terminal's common default settings, a new window or tab starts an interactive login shell, and the configuration files are loaded in this order:
+
+```text
+~/.zshenv -> ~/.zprofile -> ~/.zshrc -> ~/.zlogin
+```
+
+Zsh therefore has four common combinations:
+
+| Type | Example on macOS |
+| ---- | ---------------- |
+| Interactive + Login | The common default for a new Terminal window or tab |
+| Interactive + Non-login | Running `zsh` again inside Terminal |
+| Non-interactive + Login | `zsh -lc 'command'` |
+| Non-interactive + Non-login | `zsh script.zsh` |
+
+The first two are the most common.
+
+## Personal Configuration Structure
+
+This configuration uses a thin entry file with functionality split into modules. That keeps everything from accumulating in `.zshrc` and makes long-term maintenance easier.
+
+```text
+~
+├── .zshenv
+└── .config/
+    └── zsh/
+        ├── .zprofile
+        ├── .zshrc
+        ├── .zlogin
+        └── conf.d/
+            ├── 00-options.zsh
+            ├── 10-history.zsh
+            ├── 20-completion.zsh
+            ├── 30-keybindings.zsh
+            ├── 40-aliases.zsh
+            ├── 50-functions.zsh
+            ├── 60-tools.zsh
+            ├── 70-env.zsh
+            ├── 80-plugins.zsh
+            └── 90-prompt.zsh
+```
+
+## macOS Setup
+
+### Enable Silent Startup
+
+```zsh
+touch ~/.hushlogin
+```
+
+`.hushlogin` removes the login message printed when a macOS login shell starts.
+
+### Install Components
+
+```zsh
+brew install starship zoxide fzf eza bat ripgrep fd fastfetch
+brew install zsh-autosuggestions zsh-syntax-highlighting
+```
+
+### `~/.zshenv`
+
+`.zshenv` is read by nearly every ordinary Zsh instance, so it should stay lightweight. By resetting the `$ZDOTDIR` environment variable in `.zshenv`, we move the rest of Zsh's configuration files into `~/.config/zsh`.
+
+```zsh
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+
+export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
+
+export LANG="en_US.UTF-8"
+export LC_ALL="en_US.UTF-8"
+
+export EDITOR="vim"
+export VISUAL="$EDITOR"
+
+typeset -U path PATH
+
+path=(
+    "$HOME/.local/bin"
+    $path
+)
+```
+
+The final two lines use a more elegant, Zsh-specific way to manage `PATH`.
+
+In Zsh, `PATH` has a corresponding array variable named `path`. For example, `PATH="/usr/local/bin:/usr/bin:/bin"` is equivalent to:
+
+```zsh
+path=(
+    /usr/local/bin
+    /usr/bin
+    /bin
+)
+```
+
+The latter is clearer when managing multiple paths. Zsh automatically synchronizes `PATH` after `path` is changed. In `typeset -U path PATH`, `-U` means that duplicate entries are removed automatically.
+
+### `~/.config/zsh/.zprofile`
+
+`.zprofile` handles login-shell environment initialization. Homebrew recommends running `brew shellenv` in the shell configuration; it sets variables such as `PATH`, `MANPATH`, `INFOPATH`, and `HOMEBREW_PREFIX`.
+
+```zsh
+# Homebrew
+if [[ -x /opt/homebrew/bin/brew ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+elif [[ -x /usr/local/bin/brew ]]; then
+    eval "$(/usr/local/bin/brew shellenv zsh)"
+fi
+```
+
+`/opt/homebrew` is Homebrew's default prefix on Apple Silicon, while `/usr/local` is the common default prefix on Intel Macs. Putting Homebrew initialization in `.zprofile` lets a login shell receive Homebrew's paths and completion directory before `.zshrc` runs.
+
+### `~/.config/zsh/.zshrc`
+
+Use `.zshrc` as a module loader that recursively loads configuration modules from the `conf.d/` directory.
+
+```zsh
+for config in "$ZDOTDIR"/conf.d/*.zsh(N); do
+    source "$config"
+done
+
+unset config
+```
+
+`(N)` is a Zsh glob qualifier. When no `.zsh` file matches, it expands the pattern to nothing, avoiding an error on a first-time setup.
+
+### `~/.config/zsh/.zlogin`
+
+In general, `.zlogin` can remain empty.
+
+## `~/.config/zsh/conf.d`
+
+### `00-options.zsh`
+
+`00-options.zsh` handles the basic shell settings.
+
+```zsh
+setopt AUTO_CD
+setopt AUTO_PUSHD
+setopt PUSHD_IGNORE_DUPS
+
+setopt INTERACTIVE_COMMENTS
+
+setopt NO_BEEP
+```
+
+### `10-history.zsh`
+
+`10-history.zsh` handles command history settings.
+
+```zsh
+HISTFILE="$XDG_DATA_HOME/zsh/history"
+
+mkdir -p "${HISTFILE:h}"
+
+HISTSIZE=100000
+SAVEHIST=100000
+
+setopt APPEND_HISTORY
+setopt SHARE_HISTORY
+
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_FIND_NO_DUPS
+setopt HIST_SAVE_NO_DUPS
+
+setopt HIST_REDUCE_BLANKS
+setopt HIST_VERIFY
+setopt EXTENDED_HISTORY
+```
+
+### `20-completion.zsh`
+
+`20-completion.zsh` handles command completion.
+
+```zsh
+autoload -Uz compinit
+
+ZSH_COMPDUMP="$XDG_CACHE_HOME/zsh/zcompdump"
+
+mkdir -p "${ZSH_COMPDUMP:h}"
+
+compinit -d "$ZSH_COMPDUMP"
+
+zstyle ':completion:*' menu select
+
+zstyle ':completion:*' matcher-list \
+    'm:{a-zA-Z}={A-Za-z}'
+
+if [[ -n "${LS_COLORS:-}" ]]; then
+    zstyle ':completion:*' list-colors \
+        "${(s.:.)LS_COLORS}"
+fi
+```
+
+Homebrew's Zsh completion directory is added to `FPATH` by `brew shellenv`, so `brew shellenv` should run before `compinit`. In the structure above, `.zprofile` runs before `.zshrc`, which preserves that order.
+
+### `30-keybindings.zsh`
+
+`30-keybindings.zsh` handles key bindings.
+
+```zsh
+bindkey -e
+
+# Ctrl + Left / Right
+bindkey "^[[1;5D" backward-word
+bindkey "^[[1;5C" forward-word
+
+# Home / End
+bindkey "^[[H" beginning-of-line
+bindkey "^[[F" end-of-line
+```
+
+Different terminal emulators may send different escape sequences. If a key does not work, press `Ctrl+V` in the current terminal and then press the target key to inspect the actual input sequence.
+
+### `40-aliases.zsh`
+
+Keep aliases for simple command abbreviations only.
+
+```zsh
+# eza
+if (( $+commands[eza] )); then
+    alias ls="eza --icons=always"
+    alias ll="eza -lah --icons=always"
+    alias la="eza -a --icons=always"
+    alias lt="eza -a --tree --icons=always"
+fi
+
+# bat
+if (( $+commands[bat] )); then
+    alias cat="bat"
+fi
+
+# Git
+alias g="git"
+alias gs="git status"
+alias ga="git add"
+alias gc="git commit"
+alias gd="git diff"
+alias gl="git log"
+alias gp="git push"
+alias gpl="git pull"
+alias gco="git checkout"
+alias gb="git branch"
+```
+
+### `50-functions.zsh`
+
+Use a function instead of an alias for more complex operations.
+
+```zsh
+mkcd() {
+    if (( $# != 1 )); then
+        echo "Usage: mkcd <directory>" >&2
+        return 1
+    fi
+
+    mkdir -p -- "$1" && cd -- "$1"
+}
+```
+
+### `60-tools.zsh`
+
+`60-tools.zsh` handles initialization for general-purpose CLI tools.
+
+```zsh
+# zoxide
+if (( $+commands[zoxide] )); then
+    eval "$(zoxide init zsh)"
+fi
+
+# fzf
+if (( $+commands[fzf] )); then
+    source <(fzf --zsh)
+fi
+```
+
+`zoxide init zsh` is the initialization method given by the zoxide documentation for Zsh. `source <(fzf --zsh)` is fzf's recommended Zsh shell integration; it enables common key bindings and fuzzy completion. `--zsh` requires fzf 0.48.0 or later, which the current Homebrew package generally satisfies.
+
+### `70-env.zsh`
+
+`70-env.zsh` handles environment-layer configuration. Here, “environment layer” means development environment variables, extra SDK paths, proxy environment variables, and variables required by third-party tools.
+
+```zsh
+# Proxy
+export https_proxy=http://127.0.0.1:8234
+export http_proxy=http://127.0.0.1:8234
+export all_proxy=socks5://127.0.0.1:8235
+
+# Node / pnpm
+export PNPM_HOME="$HOME/Library/pnpm"
+
+if [[ -d "$PNPM_HOME" ]]; then
+    path=(
+        "$PNPM_HOME"
+        $path
+    )
+fi
+
+# OpenJDK
+if [[ -n "${HOMEBREW_PREFIX:-}" && -d "$HOMEBREW_PREFIX/opt/openjdk/bin" ]]; then
+    export CPPFLAGS="-I$HOMEBREW_PREFIX/opt/openjdk/include"
+    path=(
+        "$HOMEBREW_PREFIX/opt/openjdk/bin"
+        $path
+    )
+fi
+```
+
+The proxy ports, pnpm directory, and OpenJDK path are specific to one personal machine. Keeping them in a separate module means that they can be replaced directly when moving to another machine, without searching through `.zshrc`.
+
+### `80-plugins.zsh`
+
+`80-plugins.zsh` handles Zsh plugins.
+
+```zsh
+if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
+    BREW_PREFIX="$HOMEBREW_PREFIX"
+elif (( $+commands[brew] )); then
+    BREW_PREFIX="$(brew --prefix)"
+else
+    BREW_PREFIX=""
+fi
+
+if [[ -n "$BREW_PREFIX" && -f "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+    source "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+fi
+
+if [[ -n "$BREW_PREFIX" && -f "$BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
+    source "$BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+fi
+
+unset BREW_PREFIX
+```
+
+The Homebrew installation instructions for `zsh-autosuggestions` recommend sourcing the corresponding script from `.zshrc`. The official `zsh-syntax-highlighting` instructions specifically emphasize that it should be placed at the end of `.zshrc`, or at least loaded as the last plugin, because it needs to register its highlighting logic after other ZLE widgets have been created.
+
+In this module structure, `zsh-syntax-highlighting` is loaded last among the plugins. If more plugins that create ZLE widgets are added later, they should appear before `zsh-syntax-highlighting`.
+
+### `90-prompt.zsh`
+
+`90-prompt.zsh` initializes the Starship prompt. Keeping the prompt separate and last prevents it from becoming mixed with other initialization logic.
+
+```zsh
+if (( $+commands[starship] )); then
+    eval "$(starship init zsh)"
+fi
+```
+
+## Verifying the Configuration
+
+After changing the configuration, use a few commands to verify the startup type, file locations, and key tools:
+
+```zsh
+echo "$ZDOTDIR"
+echo "$HOMEBREW_PREFIX"
+print -l $path
+zsh -lic 'echo login=$options[login] interactive=$options[interactive]'
+zsh -ic 'echo login=$options[login] interactive=$options[interactive]'
+```
+
+To investigate whether a particular configuration block is slowing startup, run `zsh -xlic exit` to inspect the loading process, then temporarily move a `conf.d/*.zsh` module out of the way. With the configuration split into modules, locating the problem is much more comfortable than commenting out lines one by one in a huge `.zshrc`.
+
+## References
+
+- [Zsh: Startup/Shutdown Files](https://zsh.sourceforge.io/Doc/Release/Files.html)
+- [Apple Terminal User Guide: Change General settings in Terminal on Mac](https://support.apple.com/en-ca/guide/terminal/trmlstrtup)
+- [Homebrew Installation](https://docs.brew.sh/Installation)
+- [Homebrew `brew shellenv` manual](https://docs.brew.sh/Manpage)
+- [Homebrew Zsh completion documentation](https://docs.brew.sh/Shell-Completion)
+- [zoxide download and shell configuration](https://zoxide.org/download/)
+- [fzf shell integration](https://junegunn.github.io/fzf/shell-integration/)
+- [zsh-autosuggestions installation](https://github.com/zsh-users/zsh-autosuggestions/blob/master/INSTALL.md)
+- [zsh-syntax-highlighting installation](https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/INSTALL.md)
+- [Starship Zsh initialization](https://github.com/starship/starship)

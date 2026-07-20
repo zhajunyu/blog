@@ -8,7 +8,10 @@ export type TagId =
   | "bl"
   | "surge"
   | "proxy"
-  | "networking";
+  | "networking"
+  | "zsh"
+  | "macos"
+  | "terminal";
 export type CategoryId = "tech" | "essays" | "fiction";
 
 export interface Dictionary {
@@ -202,6 +205,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
       surge: "Surge",
       proxy: "Proxy",
       networking: "Networking",
+      zsh: "Zsh",
+      macos: "Mac OS",
+      terminal: "Terminal",
     },
     categoryLabels: {
       tech: "Tech",
@@ -312,6 +318,9 @@ export const dictionaries: Record<Locale, Dictionary> = {
       surge: "Surge",
       proxy: "代理",
       networking: "网络",
+      zsh: "Zsh",
+      macos: "Mac OS",
+      terminal: "终端",
     },
     categoryLabels: {
       tech: "科技",

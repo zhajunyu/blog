@@ -1,0 +1,415 @@
+---
+title: "Zsh 配置"
+description: "把 macOS 上的 Zsh 启动文件、Homebrew 环境、补全、历史、插件和 Prompt 拆成一套可维护的个人配置。"
+date: "2026-07-21"
+category: "tech"
+tags: ["zsh", "macos", "terminal"]
+---
+
+Zsh 配置最容易失控的地方是所有东西都被塞进 `.zshrc`：环境变量、补全、别名、插件、Prompt 和临时测试片段混在一起。冗长繁杂，缺乏可维护性。
+
+该篇文章中的这份配置采用“入口文件很薄、功能按模块拆分”的结构：让 Zsh 自己的启动顺序负责分层，让 `.zshrc` 只负责加载交互式模块。这样迁移机器、排查启动慢、临时禁用插件都会轻松一些。
+
+## Zsh 配置文件
+
+有关交互式 shell 和登录 shell 的解释，以及在启动文件中放置内容的建议，可以参阅 [A User's Guide to the Z-Shell](https://zsh.sourceforge.io/Guide/zshguide02.html) 和 [Zsh 官方 Startup/Shutdown Files 文档](https://zsh.sourceforge.io/Doc/Release/Files.html)。
+
+Zsh 官方文档以 `/etc/zshenv`、`/etc/zprofile`、`/etc/zshrc`、`/etc/zlogin`、`/etc/zlogout` 作为系统级启动文件路径；不同系统或发行版的编译配置可能不同，有些 Linux 发行版会使用 `/etc/zsh/` 目录。下表使用官方默认写法，用户级文件则由 `$ZDOTDIR` 决定：
+
+| 配置文件             | 作用                                                | 备注                                                         |
+| -------------------- | --------------------------------------------------- | ------------------------------------------------------------ |
+| `/etc/zshenv`        | 设置所有用户都需要的极少量环境                      | 所有 Zsh 实例都会先读取它，无法通过 `-f` 跳过；不应包含会产生输出或假设 shell 连接到 TTY 的命令。 |
+| `$ZDOTDIR/.zshenv`   | 设置用户的基础环境                                  | 在 `RCS` 生效时读取；不应包含会产生输出或假设 shell 连接到 TTY 的命令。 |
+| `/etc/zprofile`      | 在启动为**登录 shell** 时为所有用户执行的命令       | 在系统级别设置登录 shell 的环境；在 Linux 环境下某些发行版可能会将其符号连接到 POSIX shell 的 `/etc/profile` |
+| `$ZDOTDIR/.zprofile` | 在启动为**登录 shell** 时执行的用户命令             | 通常用于设置登录会话范围的环境变量，例如 Homebrew 的环境初始化。 |
+| `/etc/zshrc`         | 用于为所有用户设置**交互式 shell** 的配置并执行命令 | 会在启动为交互式 shell 时读取。                              |
+| `$ZDOTDIR/.zshrc`    | 用于为用户设置**交互式 shell** 配置并执行命令       | 会在启动为交互式 shell 时读取，适合放补全、按键绑定、别名、函数、插件和 Prompt。 |
+| `/etc/zlogin`        | 在登录 shell 的交互式初始化之后为所有用户执行的命令 | 会在启动为**登录 shell** 时读取。                            |
+| `$ZDOTDIR/.zlogin`   | 在登录 shell 的交互式初始化之后执行的用户命令       | 会在启动为**登录 shell** 时读取。通常可以保持为空，或只放登录后要运行的一次性命令。 |
+| `$ZDOTDIR/.zlogout`  | 在**登录 shell** 退出时执行的用户命令               | 退出登录 shell 时，用户级 `.zlogout` 先于系统级 `zlogout` 读取。 |
+| `/etc/zlogout`       | 在**登录 shell** 退出时为所有用户执行的命令         |                                                              |
+
+注意：
+
+- 如果未设置 `$ZDOTDIR`，则使用 `$HOME`。
+- `RCS` 和 `GLOBAL_RCS` 默认开启。取消设置 `RCS` 后，之后的启动文件不会继续读取；取消设置 `GLOBAL_RCS` 后，之后的系统级启动文件不会继续读取。
+- `/etc/zshenv` 应该尽可能小，因为它会被所有 Zsh 实例读取。
+
+对于 Mac OS 而言，系统并不是由 Zsh 的 login shell 来初始化的。这里的 login 更接近“终端模拟器打开一个新的命令行会话时，是否把它当作登录会话初始化”。Apple 的 Terminal 设置中，默认可以选择 “Default login shell”，并且当前默认登录 shell 是 Zsh。
+
+在 Terminal 常见默认设置下，新窗口或新标签页启动的是 interactive login shell，配置文件会按照下面的顺序加载：
+
+```text
+~/.zshenv -> ~/.zprofile -> ~/.zshrc -> ~/.zlogin
+```
+
+因此，Zsh 实际上有四种常见组合：
+
+| 类型                        | macOS 中的例子                      |
+| --------------------------- | ------------------------------------ |
+| Interactive + Login         | Terminal 新窗口/标签页的常见默认情况 |
+| Interactive + Non-login     | 在 Terminal 中再次执行 `zsh`         |
+| Non-interactive + Login     | `zsh -lc 'command'`                  |
+| Non-interactive + Non-login | `zsh script.zsh`                     |
+
+其中最常见的是前两种。
+
+## 个人配置结构
+
+配置结构采用“入口文件很薄、功能按模块拆分”的方式，避免将所有内容堆砌进 `.zshrc` 文件中，更利于长期维护。
+
+```text
+~/
+├── .zshenv
+└── .config/
+    └── zsh/
+        ├── .zprofile
+        ├── .zshrc
+        ├── .zlogin
+        └── conf.d/
+            ├── 00-options.zsh
+            ├── 10-history.zsh
+            ├── 20-completion.zsh
+            ├── 30-keybindings.zsh
+            ├── 40-aliases.zsh
+            ├── 50-functions.zsh
+            ├── 60-tools.zsh
+            ├── 70-env.zsh
+            ├── 80-plugins.zsh
+            └── 90-prompt.zsh
+```
+
+## macOS 配置过程
+
+### 设置静默启动
+
+```zsh
+touch ~/.hushlogin
+```
+
+`.hushlogin` 可以去掉 Mac OS 登录 shell 启动时的登录提示输出。
+
+### 安装组件
+
+```zsh
+brew install starship zoxide fzf eza bat ripgrep fd fastfetch
+brew install zsh-autosuggestions zsh-syntax-highlighting
+```
+
+### `~/.zshenv`
+
+`.zshenv` 会被几乎所有普通 Zsh 实例读取，所以一定要保持轻量。通过在 `.zshenv` 中重设 `$ZDOTDIR` 环境变量，我们将 Zsh 的其他配置文件迁移到 `~/.config/zsh` 目录下。
+
+```zsh
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/.cache}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/.local/share}"
+
+export ZDOTDIR="$XDG_CONFIG_HOME/zsh"
+
+export LANG="en_US.UTF-8"
+export LC_ALL="en_US.UTF-8"
+
+export EDITOR="vim"
+export VISUAL="$EDITOR"
+
+typeset -U path PATH
+
+path=(
+    "$HOME/.local/bin"
+    $path
+)
+```
+
+最后两段是 Zsh 特有的一种更优雅的 `PATH` 管理方式。
+
+在 Zsh 中，`PATH` 有一个对应的数组变量 `path`。例如 `PATH="/usr/local/bin:/usr/bin:/bin"`，等价于：
+
+```zsh
+path=(
+    /usr/local/bin
+    /usr/bin
+    /bin
+)
+```
+
+后者在管理多个路径时更加清晰。修改 `path` 后，Zsh 会自动同步 `PATH`。`typeset -U path PATH` 中的 `-U` 表示自动去重。
+
+### `~/.config/zsh/.zprofile`
+
+`.zprofile` 专门处理登录 shell 的环境初始化。Homebrew 官方建议在 shell 配置中执行 `brew shellenv`，它会设置 `PATH`、`MANPATH`、`INFOPATH` 以及 `HOMEBREW_PREFIX` 等变量。
+
+```zsh
+# Homebrew
+if [[ -x /opt/homebrew/bin/brew ]]; then
+    eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+elif [[ -x /usr/local/bin/brew ]]; then
+    eval "$(/usr/local/bin/brew shellenv zsh)"
+fi
+```
+
+`/opt/homebrew` 是 Apple Silicon 上 Homebrew 的默认前缀，`/usr/local` 是 Intel Mac 上常见的默认前缀。把 Homebrew 初始化放在 `.zprofile`，可以让登录 shell 先拿到 Homebrew 的路径和补全目录，再进入 `.zshrc`。
+
+### `~/.config/zsh/.zshrc`
+
+将 `.zshrc` 作为模块加载器，递归加载 `conf.d/` 目录下的配置模块。
+
+```zsh
+for config in "$ZDOTDIR"/conf.d/*.zsh(N); do
+    source "$config"
+done
+
+unset config
+```
+
+`(N)` 是 Zsh 的 glob qualifier。没有匹配到任何 `.zsh` 文件时，它会让模式展开为空，避免第一次配置时直接报错。
+
+### `~/.config/zsh/.zlogin`
+
+一般而言，`.zlogin` 文件可以保持为空。
+
+## `~/.config/zsh/conf.d`
+
+### `00-options.zsh`
+
+`00-options.zsh` 负责基础设置。
+
+```zsh
+setopt AUTO_CD
+setopt AUTO_PUSHD
+setopt PUSHD_IGNORE_DUPS
+
+setopt INTERACTIVE_COMMENTS
+
+setopt NO_BEEP
+```
+
+### `10-history.zsh`
+
+`10-history.zsh` 负责命令历史相关设置。
+
+```zsh
+HISTFILE="$XDG_DATA_HOME/zsh/history"
+
+mkdir -p "${HISTFILE:h}"
+
+HISTSIZE=100000
+SAVEHIST=100000
+
+setopt APPEND_HISTORY
+setopt SHARE_HISTORY
+
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_FIND_NO_DUPS
+setopt HIST_SAVE_NO_DUPS
+
+setopt HIST_REDUCE_BLANKS
+setopt HIST_VERIFY
+setopt EXTENDED_HISTORY
+```
+
+### `20-completion.zsh`
+
+`20-completion.zsh` 负责命令补全相关设置。
+
+```zsh
+autoload -Uz compinit
+
+ZSH_COMPDUMP="$XDG_CACHE_HOME/zsh/zcompdump"
+
+mkdir -p "${ZSH_COMPDUMP:h}"
+
+compinit -d "$ZSH_COMPDUMP"
+
+zstyle ':completion:*' menu select
+
+zstyle ':completion:*' matcher-list \
+    'm:{a-zA-Z}={A-Za-z}'
+
+if [[ -n "${LS_COLORS:-}" ]]; then
+    zstyle ':completion:*' list-colors \
+        "${(s.:.)LS_COLORS}"
+fi
+```
+
+Homebrew 的 zsh 补全目录会由 `brew shellenv` 加入 `FPATH`，因此 `brew shellenv` 应该早于 `compinit` 执行。上面的结构里，`.zprofile` 会先于 `.zshrc` 运行，符合这个顺序。
+
+### `30-keybindings.zsh`
+
+`30-keybindings.zsh` 负责按键绑定相关设置。
+
+```zsh
+bindkey -e
+
+# Ctrl + Left / Right
+bindkey "^[[1;5D" backward-word
+bindkey "^[[1;5C" forward-word
+
+# Home / End
+bindkey "^[[H" beginning-of-line
+bindkey "^[[F" end-of-line
+```
+
+不同终端模拟器可能发送不同的 escape sequence。如果某个按键不生效，可以先在当前终端里按 `Ctrl+V`，再按目标按键，观察实际输入序列。
+
+### `40-aliases.zsh`
+
+建议 alias 只放纯命令缩写。
+
+```zsh
+# eza
+if (( $+commands[eza] )); then
+    alias ls="eza --icons=always"
+    alias ll="eza -lah --icons=always"
+    alias la="eza -a --icons=always"
+    alias lt="eza -a --tree --icons=always"
+fi
+
+# bat
+if (( $+commands[bat] )); then
+    alias cat="bat"
+fi
+
+# Git
+alias g="git"
+alias gs="git status"
+alias ga="git add"
+alias gc="git commit"
+alias gd="git diff"
+alias gl="git log"
+alias gp="git push"
+alias gpl="git pull"
+alias gco="git checkout"
+alias gb="git branch"
+```
+
+### `50-functions.zsh`
+
+稍复杂的操作用 function，而不是 alias。
+
+```zsh
+mkcd() {
+    if (( $# != 1 )); then
+        echo "Usage: mkcd <directory>" >&2
+        return 1
+    fi
+
+    mkdir -p -- "$1" && cd -- "$1"
+}
+```
+
+### `60-tools.zsh`
+
+`60-tools.zsh` 负责通用 CLI 工具初始化。
+
+```zsh
+# zoxide
+if (( $+commands[zoxide] )); then
+    eval "$(zoxide init zsh)"
+fi
+
+# fzf
+if (( $+commands[fzf] )); then
+    source <(fzf --zsh)
+fi
+```
+
+`zoxide init zsh` 是 zoxide 官方给出的 Zsh 初始化方式。`source <(fzf --zsh)` 是 fzf 官方推荐的 Zsh shell integration，会启用常用按键绑定和 fuzzy completion；`--zsh` 需要 fzf 0.48.0 或更新版本，使用 Homebrew 安装的当前版本通常满足这个要求。
+
+### `70-env.zsh`
+
+`70-env.zsh` 负责环境层的配置。这里的“环境层”指开发环境变量、扩展 SDK 路径、代理环境变量、第三方工具要求的环境变量等。
+
+```zsh
+# Proxy
+export https_proxy=http://127.0.0.1:8234
+export http_proxy=http://127.0.0.1:8234
+export all_proxy=socks5://127.0.0.1:8235
+
+# Node / pnpm
+export PNPM_HOME="$HOME/Library/pnpm"
+
+if [[ -d "$PNPM_HOME" ]]; then
+    path=(
+        "$PNPM_HOME"
+        $path
+    )
+fi
+
+# OpenJDK
+if [[ -n "${HOMEBREW_PREFIX:-}" && -d "$HOMEBREW_PREFIX/opt/openjdk/bin" ]]; then
+    export CPPFLAGS="-I$HOMEBREW_PREFIX/opt/openjdk/include"
+    path=(
+        "$HOMEBREW_PREFIX/opt/openjdk/bin"
+        $path
+    )
+fi
+```
+
+代理端口、pnpm 目录和 OpenJDK 路径都带有个人机器的痕迹。把它们放在独立模块里，之后迁移机器时可以直接替换这一段，而不用在 `.zshrc` 里翻找。
+
+### `80-plugins.zsh`
+
+`80-plugins.zsh` 负责 Zsh 插件。
+
+```zsh
+if [[ -n "${HOMEBREW_PREFIX:-}" ]]; then
+    BREW_PREFIX="$HOMEBREW_PREFIX"
+elif (( $+commands[brew] )); then
+    BREW_PREFIX="$(brew --prefix)"
+else
+    BREW_PREFIX=""
+fi
+
+if [[ -n "$BREW_PREFIX" && -f "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh" ]]; then
+    source "$BREW_PREFIX/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+fi
+
+if [[ -n "$BREW_PREFIX" && -f "$BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]]; then
+    source "$BREW_PREFIX/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+fi
+
+unset BREW_PREFIX
+```
+
+`zsh-autosuggestions` 的 Homebrew 安装说明建议在 `.zshrc` 中 source 对应脚本。`zsh-syntax-highlighting` 官方说明则特别强调它应当放在 `.zshrc` 末尾，或至少作为最后加载的插件，因为它需要在其他 ZLE widget 创建之后注册自己的高亮逻辑。
+
+在这套模块结构里，`zsh-syntax-highlighting` 放在插件模块最后。以后如果继续增加会创建 ZLE widget 的插件，也应该让它们排在 `zsh-syntax-highlighting` 之前。
+
+### `90-prompt.zsh`
+
+`90-prompt.zsh` 负责 Starship Prompt 的初始化。Prompt 单独放最后，可以避免它和其他初始化逻辑混在一起。
+
+```zsh
+if (( $+commands[starship] )); then
+    eval "$(starship init zsh)"
+fi
+```
+
+## 验证配置
+
+改完配置之后，可以用几个命令分别验证启动类型、文件位置和关键工具：
+
+```zsh
+echo "$ZDOTDIR"
+echo "$HOMEBREW_PREFIX"
+print -l $path
+zsh -lic 'echo login=$options[login] interactive=$options[interactive]'
+zsh -ic 'echo login=$options[login] interactive=$options[interactive]'
+```
+
+如果要排查某一段配置是否拖慢启动，可以先用 `zsh -xlic exit` 看加载过程，再临时移走某个 `conf.d/*.zsh` 模块。模块化之后，定位问题会比在一份巨大 `.zshrc` 里逐行注释更舒服。
+
+## 参考资料
+
+- [Zsh: Startup/Shutdown Files](https://zsh.sourceforge.io/Doc/Release/Files.html)
+- [Apple Terminal User Guide: Change General settings in Terminal on Mac](https://support.apple.com/en-ca/guide/terminal/trmlstrtup)
+- [Homebrew Installation](https://docs.brew.sh/Installation)
+- [Homebrew `brew shellenv` 手册](https://docs.brew.sh/Manpage)
+- [Homebrew zsh completion 文档](https://docs.brew.sh/Shell-Completion)
+- [zoxide download and shell configuration](https://zoxide.org/download/)
+- [fzf shell integration](https://junegunn.github.io/fzf/shell-integration/)
+- [zsh-autosuggestions installation](https://github.com/zsh-users/zsh-autosuggestions/blob/master/INSTALL.md)
+- [zsh-syntax-highlighting installation](https://github.com/zsh-users/zsh-syntax-highlighting/blob/master/INSTALL.md)
+- [Starship Zsh 初始化说明](https://github.com/starship/starship)
