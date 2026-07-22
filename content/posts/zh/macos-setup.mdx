@@ -1,0 +1,210 @@
+---
+title: "macOS 配置"
+description: "记录一台 Mac 从系统安装完成到具备日常工作、开发与写作能力所需要的软件、字体和命令行工具配置。"
+date: "2026-07-22"
+category: "tech"
+tags: ["macos", "terminal", "engineering"]
+---
+
+这篇文章把 macOS 的初始化过程整理成一份可重复执行的清单，以供一台全新安装的 Mac 能够快速搭建起生产环境。
+
+<Callout title="建议的安装顺序">
+先完成系统更新与 Apple 账户登录，再安装 App Store 软件。网络代理配置成功后，安装独立应用，配置 Homebrew、Zsh、开发环境、字体与 1Password 的 SSH Agent。命令行工具配置完成后要重新打开终端，让新的环境变量生效。
+</Callout>
+
+## App Store
+
+这些应用直接从 App Store 安装。按用途分组之后，重装系统时可以快速检查，而不会漏掉那些不常用、但一旦缺失就会影响日常工作的工具。
+
+| 类别 | 软件 |
+| --- | --- |
+| 工具 | Dropover、iBar、The Unarchiver |
+| 教育 | Geogebra 计算机套件 |
+| 软件开发工具 | Xcode |
+| 商务 | 钉钉、飞书、Trello、Windows App |
+| 社交 | 微信、QQ |
+| 效率 | Things 3 |
+| 音乐 | Amperfy Music |
+| 娱乐 | Infuse |
+| Apple Creative Studio | Pages 文稿、Keynote 讲演、Numbers 表格、Final Cut Pro、Logic Pro、Pixelmator Pro、Compressor、Motion |
+
+Xcode 不只是开发工具，也会提供一部分 Apple 平台开发所需的命令行组件。安装完成后，可以先接受 Xcode 的许可协议：
+
+```zsh
+sudo xcodebuild -license
+```
+
+## 独立安装的软件包
+
+下面这些软件不统一从 App Store 获取。它们分别覆盖密码管理、网络、文档、媒体、知识管理和开发辅助等场景：
+
+| 软件 | 用途 |
+| --- | --- |
+| 1Password | 密码与敏感信息管理 |
+| ChatGPT | AI 助手 |
+| Downie 4 | 媒体下载 |
+| Draw.io | 图表与流程图 |
+| FileZilla | 文件传输 |
+| Google Chrome | 浏览器 |
+| IINA | 视频播放器 |
+| Microsoft Office（Excel、PowerPoint、Word） | 文档、表格与演示文稿 |
+| MinerU | 文档解析 |
+| Obsidian | 双向链接笔记 |
+| OBS Studio | 录制与直播 |
+| OnyX | macOS 维护 |
+| PDF Expert | PDF 阅读与编辑 |
+| Surge | 网络代理与调试 |
+| Typora | Markdown 写作 |
+| Visual Studio Code | 代码编辑器 |
+| Zotero | 文献管理 |
+
+独立安装的软件最好从官方网站下载。这样可以避开来源混乱的问题，也方便确认应用是否支持当前的 macOS 版本。安装后，再根据应用本身的同步机制恢复设置，不必把所有配置文件都手动复制回来。
+
+## Surge
+
+Surge 承担 Mac 的网络代理功能。首先设置好 Surge 有助于后续软件设置过程中网络的畅通。
+
+Surge 的具体配置参见[《Surge 代理配置》](/zh/posts/surge-proxy-configuration)。
+
+## Homebrew
+
+Homebrew 是这套环境的基础设施，很多开发工具、命令行程序和字体都通过它安装。先运行官方安装脚本：
+
+```sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+安装程序结束后，把 Homebrew 加入 Zsh 环境。Apple Silicon Mac 通常使用 `/opt/homebrew`：
+
+```zsh
+echo >> /Users/zhajunyu/.zprofile
+echo 'eval "$(/opt/homebrew/bin/brew shellenv zsh)"' >> /Users/zhajunyu/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+```
+
+如果是 Intel Mac，需要将路径替换为 `/usr/local/bin/brew`。这一步也可以放进后文的 `.zprofile`，统一由 Zsh 登录配置负责加载。
+
+## Zsh
+
+macOS 默认使用 Zsh，为我们省去了安装 Zsh 的步骤。但其配置十分简洁，接近裸环境，不一定适合日常的使用。
+
+Zsh 的具体配置参见[《Zsh 配置》](/zh/posts/zsh-configuration)。
+
+## 开发环境
+
+### 基础工具
+
+以下命令安装开发、构建和日常使用中会反复调用的工具：
+
+```zsh
+# 1Password 命令行工具
+brew install 1password-cli
+
+# 7z 压缩工具
+brew install sevenzip
+
+# Arduino
+brew install arduino-cli
+
+# Android 调试工具
+brew install android-platform-tools
+
+# Caddy Web 服务器
+brew install caddy
+
+# AI Agents
+brew install --cask claude-code
+brew install --cask codex
+
+# Docker Desktop
+brew install --cask docker-desktop
+
+# Ghostty 终端
+brew install --cask ghostty
+
+# Git 与 GitHub CLI
+brew install git
+git config --global user.name "Junyu Zha"
+git config --global user.email "git@zhajunyu.me"
+git config --global init.defaultbranch main
+
+brew install gh
+gh auth login
+```
+
+其中 Git 的全局配置只需要设置一次。`gh auth login` 会引导完成 GitHub CLI 的认证，完成后可以直接在终端中管理仓库、Issue 和 Pull Request。
+
+### 编程语言与工具链
+
+```sh
+# LaTeX
+brew install --cask mactex-no-gui
+
+# Java
+brew install openjdk
+sudo ln -sfn /opt/homebrew/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
+
+# Node.js 与 pnpm
+brew install node
+brew install pnpm
+
+# Ollama 与本地模型
+brew install ollama
+brew service start ollama
+ollama pull Qwen2.5-Coder:7B
+
+# PHP
+brew install php
+
+# Python
+brew install uv
+brew install jupyterlab
+
+# Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Typst
+brew install typst
+```
+
+注意有些工具链需要用特定的方式管理，而非全部使用 Homebrew：
+- 用 pnpm 管理 Node.js 项目；
+- 用 uv 管理 Python 相关依赖；
+- 用 rustup 管理 Rust 项目及工具链。
+
+另外，如果机器不是 Apple Silicon，Java 的 Homebrew 路径也要相应改成 `/usr/local/opt/openjdk`。
+
+## 字体
+
+字体是代码、终端和写作环境的一部分。需要手动导入的字体包括 Consolas 以及 San Francisco 系列字体；Apple 提供了[San Francisco 字体下载页面](https://developer.apple.com/fonts/)。
+
+另外可以通过 Homebrew 安装 Maple Mono：
+
+```zsh
+brew install font-maple-mono-normal-nf
+```
+
+安装后，在终端和 VS Code 中分别选择喜欢的字体。代码字体和界面字体不一定要相同；前者优先考虑等宽、连字和中英文混排效果，后者则优先考虑阅读舒适度。
+
+## 1Password
+
+安装密码管理器 1Password，便于后续软件的设置、登录。同时，打开 1Password 的 SSH Agent 以接管 SSH 相关配置。
+
+## 初始化完成后的检查
+
+最后做一次快速检查，确保这台机器已经从“软件安装完毕”进入“可以开始工作”的状态：
+
+```zsh
+brew doctor
+brew list
+git --version
+gh auth status
+node --version
+pnpm --version
+uv --version
+python --version
+rustc --version
+ollama list
+```
+
+然后打开一个新的终端窗口，确认 Homebrew、Zsh 插件和 Prompt 都已生效；打开 VS Code，确认需要的语言服务能够启动；最后从备份或各个应用的同步服务恢复文档、密码、笔记与项目。

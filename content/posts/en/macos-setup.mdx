@@ -1,0 +1,211 @@
+---
+title: "macOS Setup"
+description: "A record of the software, fonts, and command-line tools needed to turn a freshly installed Mac into a machine ready for everyday work, development, and writing."
+date: "2026-07-22"
+category: "tech"
+tags: ["macos", "terminal", "engineering"]
+---
+
+This article turns the macOS setup process into a repeatable checklist, so that a freshly installed Mac can quickly become a productive work environment.
+
+<Callout title="Recommended installation order">
+First complete system updates and sign in to your Apple Account. Then install App Store software. After configuring the network proxy, install standalone applications, and set up Homebrew, Zsh, the development environment, fonts, and the 1Password SSH Agent. After configuring command-line tools, reopen the terminal so that the new environment variables take effect.
+</Callout>
+
+## App Store
+
+These applications are installed directly from the App Store. Grouping them by purpose makes it easy to check everything after reinstalling the system, without overlooking tools that may be used infrequently but become important when they are missing.
+
+| Category | Software |
+| --- | --- |
+| Utilities | Dropover, iBar, The Unarchiver |
+| Education | GeoGebra Calculator Suite |
+| Developer Tools | Xcode |
+| Business | DingTalk, Feishu, Trello, Windows App |
+| Social | WeChat, QQ |
+| Productivity | Things 3 |
+| Music | Amperfy Music |
+| Entertainment | Infuse |
+| Apple Creative Studio | Pages, Keynote, Numbers, Final Cut Pro, Logic Pro, Pixelmator Pro, Compressor, Motion |
+
+Xcode is more than a development tool; it also provides some of the command-line components required for Apple platform development. After installation, accept the Xcode license agreement first:
+
+~~~zsh
+sudo xcodebuild -license
+~~~
+
+## Standalone Applications
+
+The following applications are not installed through the App Store as a single group. They cover password management, networking, documents, media, knowledge management, and development assistance:
+
+| Software | Purpose |
+| --- | --- |
+| 1Password | Password and sensitive information management |
+| ChatGPT | AI assistant |
+| Downie 4 | Media downloads |
+| Draw.io | Diagrams and flowcharts |
+| FileZilla | File transfer |
+| Google Chrome | Web browser |
+| IINA | Video player |
+| Microsoft Office (Excel, PowerPoint, Word) | Documents, spreadsheets, and presentations |
+| MinerU | Document parsing |
+| Obsidian | Linked-note knowledge management |
+| OBS Studio | Recording and livestreaming |
+| OnyX | macOS maintenance |
+| PDF Expert | PDF reading and editing |
+| Surge | Network proxy and debugging |
+| Typora | Markdown writing |
+| Visual Studio Code | Code editor |
+| Zotero | Reference management |
+
+Standalone applications should preferably be downloaded from their official websites. This avoids uncertain distribution sources and makes it easier to confirm whether an application supports the current macOS version. After installation, restore settings through each application's own synchronization mechanism instead of manually copying every configuration file.
+
+## Surge
+
+Surge provides network proxy functionality on the Mac. Setting up Surge first helps keep the network accessible while configuring the rest of the software.
+
+See [Surge Proxy Configuration](/en/posts/surge-proxy-configuration) for the detailed Surge setup.
+
+## Homebrew
+
+Homebrew is the foundation of this environment. Many development tools, command-line programs, and fonts are installed through it. Start with the official installation script:
+
+~~~sh
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+~~~
+
+After the installer finishes, add Homebrew to the Zsh environment. Apple Silicon Macs usually use /opt/homebrew:
+
+~~~zsh
+echo >> /Users/zhajunyu/.zprofile
+echo 'eval "$(/opt/homebrew/bin/brew shellenv zsh)"' >> /Users/zhajunyu/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+~~~
+
+On an Intel Mac, replace the path with /usr/local/bin/brew. This step can also be placed in .zprofile and loaded centrally by the Zsh login configuration described below.
+
+## Zsh
+
+macOS uses Zsh by default, which means there is no need to install Zsh separately. Its default configuration is quite minimal, however, and is close to a bare environment that may not be suitable for everyday use.
+
+See [Zsh Configuration](/en/posts/zsh-configuration) for the detailed Zsh setup.
+
+## Development Environment
+
+### Basic Tools
+
+The following commands install tools that are repeatedly used for development, builds, and everyday work:
+
+~~~zsh
+# 1Password CLI
+brew install 1password-cli
+
+# 7z archive utility
+brew install sevenzip
+
+# Arduino
+brew install arduino-cli
+
+# Android debugging tools
+brew install android-platform-tools
+
+# Caddy web server
+brew install caddy
+
+# AI agents
+brew install --cask claude-code
+brew install --cask codex
+
+# Docker Desktop
+brew install --cask docker-desktop
+
+# Ghostty terminal
+brew install --cask ghostty
+
+# Git and GitHub CLI
+brew install git
+git config --global user.name "Junyu Zha"
+git config --global user.email "git@zhajunyu.me"
+git config --global init.defaultbranch main
+
+brew install gh
+gh auth login
+~~~
+
+Git's global configuration only needs to be set once. gh auth login guides you through GitHub CLI authentication, after which you can manage repositories, issues, and pull requests directly from the terminal.
+
+### Programming Languages and Toolchains
+
+~~~sh
+# LaTeX
+brew install --cask mactex-no-gui
+
+# Java
+brew install openjdk
+sudo ln -sfn /opt/homebrew/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
+
+# Node.js and pnpm
+brew install node
+brew install pnpm
+
+# Ollama and a local model
+brew install ollama
+brew service start ollama
+ollama pull Qwen2.5-Coder:7B
+
+# PHP
+brew install php
+
+# Python
+brew install uv
+brew install jupyterlab
+
+# Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Typst
+brew install typst
+~~~
+
+Some toolchains need to be managed in specific ways rather than entirely through Homebrew:
+
+- Use pnpm to manage Node.js projects.
+- Use uv to manage Python dependencies.
+- Use rustup to manage Rust projects and toolchains.
+
+If the machine is not an Apple Silicon Mac, adjust the Java Homebrew path to /usr/local/opt/openjdk as well.
+
+## Fonts
+
+Fonts are part of the coding, terminal, and writing environment. Fonts that need to be imported manually include Consolas and the San Francisco family; Apple provides the [San Francisco fonts download page](https://developer.apple.com/fonts/).
+
+Maple Mono can also be installed through Homebrew:
+
+~~~zsh
+brew install font-maple-mono-normal-nf
+~~~
+
+After installation, choose the preferred font separately in the terminal and VS Code. The code font and interface font do not have to be the same: for code, prioritize monospacing, ligatures, and mixed Chinese-English readability; for the interface, prioritize reading comfort.
+
+## 1Password
+
+Install the 1Password password manager to make subsequent software setup and sign-ins easier. Also enable the 1Password SSH Agent to manage SSH-related configuration.
+
+## Final Checks
+
+Perform a quick check to make sure the machine has moved from “software installed” to “ready to work”:
+
+~~~zsh
+brew doctor
+brew list
+git --version
+gh auth status
+node --version
+pnpm --version
+uv --version
+python --version
+rustc --version
+ollama list
+~~~
+
+Then open a new terminal window and confirm that Homebrew, the Zsh plugins, and the prompt are active. Open VS Code and confirm that the required language services start successfully. Finally, restore documents, passwords, notes, and projects from backups or each application's synchronization service.
