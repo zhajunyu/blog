@@ -206,7 +206,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       proxy: "Proxy",
       networking: "Networking",
       zsh: "Zsh",
-      macos: "Mac OS",
+      macos: "macOS",
       terminal: "Terminal",
     },
     categoryLabels: {
@@ -319,7 +319,7 @@ export const dictionaries: Record<Locale, Dictionary> = {
       proxy: "代理",
       networking: "网络",
       zsh: "Zsh",
-      macos: "Mac OS",
+      macos: "macOS",
       terminal: "终端",
     },
     categoryLabels: {
