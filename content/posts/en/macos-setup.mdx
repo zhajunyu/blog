@@ -90,6 +90,15 @@ macOS uses Zsh by default, which means there is no need to install Zsh separatel
 
 See [Zsh Configuration](/en/posts/zsh-configuration) for the detailed Zsh setup.
 
+You can also configure the terminal to try Touch ID when authenticating sudo commands:
+
+~~~zsh
+sudo cp /etc/pam.d/sudo_local.template /etc/pam.d/sudo_local
+sudo -e /etc/pam.d/sudo_local
+~~~
+
+Then uncomment `#auth       sufficient     pam_tid.so` by removing the leading `#`.
+
 ## Development Environment
 
 ### Basic Tools
